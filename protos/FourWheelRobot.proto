@@ -1,13 +1,15 @@
 #VRML_SIM R2025a utf8
 PROTO FourWheelRobot [
-  field SFVec3f    translation  0 0 0
-  field SFRotation rotation     0 1 0 0
+  field SFVec3f translation 0 0 0
+  field SFRotation rotation 0 1 0 0
 ]
 {
   Robot {
     translation IS translation
     rotation IS rotation
     children [
+
+      # Body
       DEF BODY Shape {
         appearance PBRAppearance {
           baseColor 0.917647 0.145098 0.145098
@@ -15,23 +17,23 @@ PROTO FourWheelRobot [
           metalness 0
         }
         geometry Box {
-          size 0.1 0.05 0.2
+          size 1.5 0.75 3.0   # 15x bigger
         }
       }
 
       # Front-right wheel
       DEF WHEEL1 HingeJoint {
         jointParameters HingeJointParameters {
-          anchor 0.06 0 0.05
+          anchor 0.9 0 0.75
           axis 1 0 0
         }
         device [ RotationalMotor { name "wheel1" } ]
         endPoint Solid {
           name "wheel1_solid"
-          translation 0.06 0 0.05
+          translation 0.9 0 0.75
           children [
             Transform {
-              rotation 0 0 1 1.5708  # rotate cylinder Y → X
+              rotation 0 0 1 1.5708
               children [
                 Shape {
                   appearance PBRAppearance {
@@ -40,8 +42,8 @@ PROTO FourWheelRobot [
                     metalness 0
                   }
                   geometry Cylinder {
-                    height 0.02
-                    radius 0.04
+                    height 0.3
+                    radius 0.6
                     subdivision 24
                   }
                 }
@@ -53,8 +55,8 @@ PROTO FourWheelRobot [
             children [
               Shape {
                 geometry Cylinder {
-                  height 0.02
-                  radius 0.04
+                  height 0.3
+                  radius 0.6
                   subdivision 24
                 }
               }
@@ -67,13 +69,13 @@ PROTO FourWheelRobot [
       # Front-left wheel
       DEF WHEEL2 HingeJoint {
         jointParameters HingeJointParameters {
-          anchor -0.06 0 0.05
+          anchor -0.9 0 0.75
           axis 1 0 0
         }
         device [ RotationalMotor { name "wheel2" } ]
         endPoint Solid {
           name "wheel2_solid"
-          translation -0.06 0 0.05
+          translation -0.9 0 0.75
           children [
             Transform {
               rotation 0 0 1 1.5708
@@ -85,8 +87,8 @@ PROTO FourWheelRobot [
                     metalness 0
                   }
                   geometry Cylinder {
-                    height 0.02
-                    radius 0.04
+                    height 0.3
+                    radius 0.6
                     subdivision 24
                   }
                 }
@@ -98,8 +100,8 @@ PROTO FourWheelRobot [
             children [
               Shape {
                 geometry Cylinder {
-                  height 0.02
-                  radius 0.04
+                  height 0.3
+                  radius 0.6
                   subdivision 24
                 }
               }
@@ -112,13 +114,13 @@ PROTO FourWheelRobot [
       # Rear-right wheel
       DEF WHEEL3 HingeJoint {
         jointParameters HingeJointParameters {
-          anchor 0.06 0 -0.05
+          anchor 0.9 0 -0.75
           axis 1 0 0
         }
         device [ RotationalMotor { name "wheel3" } ]
         endPoint Solid {
           name "wheel3_solid"
-          translation 0.06 0 -0.05
+          translation 0.9 0 -0.75
           children [
             Transform {
               rotation 0 0 1 1.5708
@@ -130,8 +132,8 @@ PROTO FourWheelRobot [
                     metalness 0
                   }
                   geometry Cylinder {
-                    height 0.02
-                    radius 0.04
+                    height 0.3
+                    radius 0.6
                     subdivision 24
                   }
                 }
@@ -143,8 +145,8 @@ PROTO FourWheelRobot [
             children [
               Shape {
                 geometry Cylinder {
-                  height 0.02
-                  radius 0.04
+                  height 0.3
+                  radius 0.6
                   subdivision 24
                 }
               }
@@ -157,13 +159,13 @@ PROTO FourWheelRobot [
       # Rear-left wheel
       DEF WHEEL4 HingeJoint {
         jointParameters HingeJointParameters {
-          anchor -0.06 0 -0.05
+          anchor -0.9 0 -0.75
           axis 1 0 0
         }
         device [ RotationalMotor { name "wheel4" } ]
         endPoint Solid {
           name "wheel4_solid"
-          translation -0.06 0 -0.05
+          translation -0.9 0 -0.75
           children [
             Transform {
               rotation 0 0 1 1.5708
@@ -175,8 +177,8 @@ PROTO FourWheelRobot [
                     metalness 0
                   }
                   geometry Cylinder {
-                    height 0.02
-                    radius 0.04
+                    height 0.3
+                    radius 0.6
                     subdivision 24
                   }
                 }
@@ -188,8 +190,8 @@ PROTO FourWheelRobot [
             children [
               Shape {
                 geometry Cylinder {
-                  height 0.02
-                  radius 0.04
+                  height 0.3
+                  radius 0.6
                   subdivision 24
                 }
               }
@@ -203,7 +205,7 @@ PROTO FourWheelRobot [
     boundingObject USE BODY
     physics Physics {
       density -1
-      mass 1
+      mass 15   # 15x bigger mass
     }
   }
 }
