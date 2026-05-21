@@ -1,0 +1,209 @@
+#VRML_SIM R2025a utf8
+PROTO FourWheelRobot [
+  field SFVec3f    translation  0 0 0
+  field SFRotation rotation     0 1 0 0
+]
+{
+  Robot {
+    translation IS translation
+    rotation IS rotation
+    children [
+      DEF BODY Shape {
+        appearance PBRAppearance {
+          baseColor 0.917647 0.145098 0.145098
+          roughness 1
+          metalness 0
+        }
+        geometry Box {
+          size 0.1 0.05 0.2
+        }
+      }
+
+      # Front-right wheel
+      DEF WHEEL1 HingeJoint {
+        jointParameters HingeJointParameters {
+          anchor 0.06 0 0.05
+          axis 1 0 0
+        }
+        device [ RotationalMotor { name "wheel1" } ]
+        endPoint Solid {
+          name "wheel1_solid"
+          translation 0.06 0 0.05
+          children [
+            Transform {
+              rotation 0 0 1 1.5708  # rotate cylinder Y → X
+              children [
+                Shape {
+                  appearance PBRAppearance {
+                    baseColor 0.305882 0.898039 0.25098
+                    roughness 1
+                    metalness 0
+                  }
+                  geometry Cylinder {
+                    height 0.02
+                    radius 0.04
+                    subdivision 24
+                  }
+                }
+              ]
+            }
+          ]
+          boundingObject Transform {
+            rotation 0 0 1 1.5708
+            children [
+              Shape {
+                geometry Cylinder {
+                  height 0.02
+                  radius 0.04
+                  subdivision 24
+                }
+              }
+            ]
+          }
+          physics Physics {}
+        }
+      }
+
+      # Front-left wheel
+      DEF WHEEL2 HingeJoint {
+        jointParameters HingeJointParameters {
+          anchor -0.06 0 0.05
+          axis 1 0 0
+        }
+        device [ RotationalMotor { name "wheel2" } ]
+        endPoint Solid {
+          name "wheel2_solid"
+          translation -0.06 0 0.05
+          children [
+            Transform {
+              rotation 0 0 1 1.5708
+              children [
+                Shape {
+                  appearance PBRAppearance {
+                    baseColor 0.305882 0.898039 0.25098
+                    roughness 1
+                    metalness 0
+                  }
+                  geometry Cylinder {
+                    height 0.02
+                    radius 0.04
+                    subdivision 24
+                  }
+                }
+              ]
+            }
+          ]
+          boundingObject Transform {
+            rotation 0 0 1 1.5708
+            children [
+              Shape {
+                geometry Cylinder {
+                  height 0.02
+                  radius 0.04
+                  subdivision 24
+                }
+              }
+            ]
+          }
+          physics Physics {}
+        }
+      }
+
+      # Rear-right wheel
+      DEF WHEEL3 HingeJoint {
+        jointParameters HingeJointParameters {
+          anchor 0.06 0 -0.05
+          axis 1 0 0
+        }
+        device [ RotationalMotor { name "wheel3" } ]
+        endPoint Solid {
+          name "wheel3_solid"
+          translation 0.06 0 -0.05
+          children [
+            Transform {
+              rotation 0 0 1 1.5708
+              children [
+                Shape {
+                  appearance PBRAppearance {
+                    baseColor 0.305882 0.898039 0.25098
+                    roughness 1
+                    metalness 0
+                  }
+                  geometry Cylinder {
+                    height 0.02
+                    radius 0.04
+                    subdivision 24
+                  }
+                }
+              ]
+            }
+          ]
+          boundingObject Transform {
+            rotation 0 0 1 1.5708
+            children [
+              Shape {
+                geometry Cylinder {
+                  height 0.02
+                  radius 0.04
+                  subdivision 24
+                }
+              }
+            ]
+          }
+          physics Physics {}
+        }
+      }
+
+      # Rear-left wheel
+      DEF WHEEL4 HingeJoint {
+        jointParameters HingeJointParameters {
+          anchor -0.06 0 -0.05
+          axis 1 0 0
+        }
+        device [ RotationalMotor { name "wheel4" } ]
+        endPoint Solid {
+          name "wheel4_solid"
+          translation -0.06 0 -0.05
+          children [
+            Transform {
+              rotation 0 0 1 1.5708
+              children [
+                Shape {
+                  appearance PBRAppearance {
+                    baseColor 0.305882 0.898039 0.25098
+                    roughness 1
+                    metalness 0
+                  }
+                  geometry Cylinder {
+                    height 0.02
+                    radius 0.04
+                    subdivision 24
+                  }
+                }
+              ]
+            }
+          ]
+          boundingObject Transform {
+            rotation 0 0 1 1.5708
+            children [
+              Shape {
+                geometry Cylinder {
+                  height 0.02
+                  radius 0.04
+                  subdivision 24
+                }
+              }
+            ]
+          }
+          physics Physics {}
+        }
+      }
+
+    ] # children
+    boundingObject USE BODY
+    physics Physics {
+      density -1
+      mass 1
+    }
+  }
+}

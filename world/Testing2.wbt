@@ -1,0 +1,357 @@
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackground.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/road/protos/RoadIntersection.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/road/protos/StraightRoadSegment.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/trees/protos/PalmTree.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/traffic/protos/GenericTrafficLight.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/trees/protos/Oak.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/road/protos/CrashBarrier.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/buildings/protos/CommercialBuilding.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/buildings/protos/TheThreeTowers.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/road/protos/Crossroad.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/traffic/protos/StopSign.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/animals/protos/Dog.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/humans/pedestrian/protos/Pedestrian.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/buildings/protos/Hotel.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/buildings/protos/BigGlassTower.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/buildings/protos/ModernSuburbanHouse.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/traffic/protos/OrderSign.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/traffic/protos/YieldSign.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/floors/protos/Floor.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/Grass.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/buildings/protos/Barn.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/buildings/protos/FastFoodRestaurant.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/buildings/protos/UBuilding.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/buildings/protos/GasStation.proto"
+
+WorldInfo {
+}
+Viewpoint {
+  orientation 0.18504396626320033 -0.34231872624401377 -0.9211821862217374 5.050488712580439
+  position -104.79953921401645 -159.3745892505152 78.84085027107113
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+YieldSign {
+  translation -38.4275 -32.9215 -2.4869e-14
+  rotation 0 0 1 2.35619
+}
+StraightRoadSegment {
+  translation -64 -14.3 0.1
+  rotation 0 0 1 2.3561996938995744
+  name "road(2)"
+  length 30
+}
+BigGlassTower {
+  translation -14.7285 -1.75928 -5.68435e-14
+  rotation 0 0 1 -2.3561953071795863
+}
+Hotel {
+  translation -22.8812 7.06665 0
+  rotation 0 0 1 0.785398
+}
+Pedestrian {
+  translation -9.21552 3.61474 1.5
+  rotation 0 0 1 2.0944
+}
+TheThreeTowers {
+  translation -13.3356 30.9924 -6.78565e-12
+  rotation 0 0 -1 -0.7952153071795864
+}
+CommercialBuilding {
+  translation -0.061762 -21.8132 -7.55307e-12
+  rotation 0 0 1 -0.785395307179586
+}
+CrashBarrier {
+  translation 9.34694 -3.75553 0.25
+  rotation 0 0 1 -0.7854053071795866
+}
+CrashBarrier {
+  translation 12.8478 -7.24992 0.25
+  rotation 0 0 1 -0.7854053071795866
+  name "crash barrier(8)"
+}
+CrashBarrier {
+  translation 16.3736 -10.7692 0.25
+  rotation 0 0 1 -0.7854053071795866
+  name "crash barrier(9)"
+}
+CrashBarrier {
+  translation 19.8906 -14.2812 0.25
+  rotation 0 0 1 -0.7854053071795866
+  name "crash barrier(10)"
+}
+Oak {
+  translation 11.8504 6.02911 -3.8085e-12
+  rotation 0 0 1 -1.3089953071795861
+  name "oak tree(1)"
+}
+StraightRoadSegment {
+  translation 6 6 0.1
+  rotation 0 0 1 0.7861523851958112
+  name "road(4)"
+}
+Oak {
+  translation 15.118 9.44662 -3.78008e-12
+  rotation 0 0 1 -1.3089953071795861
+  name "oak tree(2)"
+}
+StraightRoadSegment {
+  translation 13 13 0.1
+  rotation 0 0 1 0.7861523851958112
+  name "road(5)"
+  length 36
+}
+GenericTrafficLight {
+  translation -6.13579 -0.791687 0.11
+  rotation 0 0 1 -2.3561953071795863
+  name "generic traffic light(3)"
+  state "green"
+}
+GenericTrafficLight {
+  translation 0.0566764 5.50087 0.01
+  rotation 0 0 1 2.35619
+  name "generic traffic light(2)"
+  startGreen FALSE
+  state "green"
+}
+GenericTrafficLight {
+  translation 0.0667875 -5.46066 -0.09
+  rotation 0 0 1 -0.785395307179586
+  state "green"
+}
+RoadIntersection {
+  translation 0 0 0.1
+}
+CrashBarrier {
+  translation 3.79848 -9.563 0
+  rotation 0 0 1 2.35619
+  name "crash barrier(6)"
+}
+GenericTrafficLight {
+  translation 5.64358 0.265585 0.01
+  rotation 0 0 1 0.785398
+  name "generic traffic light(1)"
+  state "green"
+}
+PalmTree {
+  translation -7.03271 0.202912 5.97019e-05
+  rotation 2.6330799999814594e-06 2.6739499999811713e-06 0.9999999999929585 1.5708
+}
+StraightRoadSegment {
+  translation -13.01 -13.06 0.1
+  rotation 0 0 1 0.7861523851958112
+}
+StraightRoadSegment {
+  translation -13 -13 0.1
+  rotation 0 0 1 -2.3561956132800117
+  name "road(7)"
+  length 31.6
+}
+StraightRoadSegment {
+  translation -41 -41 0.1
+  rotation 0 0 1 -2.3561956132800117
+  name "road(2)"
+  length 31.6
+}
+StraightRoadSegment {
+  translation -64 -19 0.1
+  rotation 0 0 1 -2.3561956132800117
+  name "road(2)"
+  length 30
+}
+StraightRoadSegment {
+  translation -41 -36 0.1
+  rotation 0 0 1 2.3561956132800117
+  name "road(2)"
+  length 25
+}
+StopSign {
+  translation -60.992 -21.7289 0.27
+  rotation 0 0 1 -0.7854053071795866
+}
+StopSign {
+  translation -60.8086 -11.4213 3.90799e-14
+  rotation 0 0 1 2.35619
+  name "stop sign(2)"
+}
+StopSign {
+  translation -27.3303 22.2782 -3.19744e-14
+  rotation 0 0 1 -2.3561953071795863
+  name "stop sign(1)"
+}
+Oak {
+  translation 17.6544 12.1924 -3.8014e-12
+  rotation 0 0 1 -1.3089953071795861
+}
+StraightRoadSegment {
+  translation 6 -6 0.1
+  rotation 0 0 1 -0.7854003061004253
+  name "road(2)"
+}
+CrashBarrier {
+  translation 5.84009 -0.227035 0.25
+  rotation 0 0 1 -0.7854053071795866
+  name "crash barrier(7)"
+}
+CrashBarrier {
+  translation 14.3252 -20.1676 0
+  rotation 0 0 1 2.35619
+  name "crash barrier(3)"
+}
+CrashBarrier {
+  translation 17.8463 -23.6845 1.06581e-14
+  rotation 0 0 1 2.35619
+  name "crash barrier(5)"
+}
+CrashBarrier {
+  translation 7.27065 -13.0767 0
+  rotation 0 0 1 2.35619
+  name "crash barrier(4)"
+}
+CrashBarrier {
+  translation 10.8087 -16.6181 -7.10543e-15
+  rotation 0 0 1 2.35619
+  name "crash barrier(2)"
+}
+CrashBarrier {
+  translation 7.27065 -13.0767 0
+  rotation 0 0 1 2.35619
+  name "crash barrier(1)"
+}
+StraightRoadSegment {
+  translation 13 -13 0.1
+  rotation 0 0 1 -0.7854003061004253
+  name "road(6)"
+  length 28
+}
+StraightRoadSegment {
+  translation -13 13 0.1
+  rotation 0 0 1 -0.7854003061004253
+  name "road(3)"
+}
+StraightRoadSegment {
+  translation -20 20 0.1
+  rotation 0 0 1 -0.7854003061004253
+  name "road(1)"
+}
+StraightRoadSegment {
+  translation -24 24 0.1
+  rotation 0 0 1 2.3561996938995744
+  name "road(8)"
+  length 31
+}
+StraightRoadSegment {
+  translation -24.9 20 0.1
+  rotation 0 0 1 -2.3561950010791604
+  name "road(9)"
+  width 6
+  roadBorderHeight 0.11
+  startingRoadBorderWidth 0.6
+  endingRoadBorderWidth 0.5
+  length 48
+}
+Crossroad {
+  translation -22 22 0.1
+  rotation 0 0 1 0.79
+  shape [
+    -3.5 -3.5 0
+    -3.5 3.5 0
+    3.5 3.5 0
+    3.5 -3.5 0
+  ]
+}
+Crossroad {
+  translation -61.2 -16.7 0.1
+  rotation 0 0 1 0.79
+  name "crossroad(1)"
+  shape [
+    -3.8 -3.8 0
+    -3.8 3.8 0
+    3.8 3.8 0
+    3.8 -3.8 0
+  ]
+}
+Crossroad {
+  translation -38 -38 0.1
+  rotation 0 0 1 0.79
+  name "crossroad(2)"
+  shape [
+    -3.8 -3.8 0
+    -3.8 4.3 0
+    4 4.3 0
+    3.8 -3.8 0
+  ]
+}
+Dog {
+  translation -9.79681 4.45934 0.22
+  rotation 2.346409999992433e-06 9.719149999968655e-07 0.999999999996775 2.35619
+}
+ModernSuburbanHouse {
+  translation -78.6892 -15.1621 -0.6
+  rotation 0 0 1 0.785401
+}
+OrderSign {
+  translation -87.5506 -36.9982 0.31
+  rotation 0 0 1 0.785398
+}
+OrderSign {
+  translation -42.7599 48.1741 0.19
+  rotation 0 0 1 -0.785395307179586
+  name "order sign(3)"
+}
+OrderSign {
+  translation -48.3076 42.8069 0.19
+  rotation 0 0 1 -0.785395307179586
+  name "order sign(7)"
+}
+OrderSign {
+  translation -82.1723 9.34284 0.19
+  rotation 0 0 1 -0.785395307179586
+  name "order sign(6)"
+}
+OrderSign {
+  translation -87.6829 3.82693 0.19
+  rotation 0 0 1 -0.785395307179586
+  name "order sign(5)"
+}
+OrderSign {
+  translation -82.0043 -42.5641 0.31
+  rotation 0 0 1 0.785398
+  name "order sign(4)"
+}
+OrderSign {
+  translation -65.5149 -59.9815 0.31
+  rotation 0 0 1 0.785398
+  name "order sign(2)"
+}
+OrderSign {
+  translation -59.9326 -65.3526 0.31
+  rotation 0 0 1 0.785398
+  name "order sign(1)"
+}
+Floor {
+  size 200 200
+  appearance Grass {
+  }
+}
+GasStation {
+  translation -36.6826 -16.559 -2.13163e-13
+  rotation 0 0 1 -0.785395307179586
+}
+UBuilding {
+  translation -61.3074 21.9786 -5.68434e-14
+  rotation 0 0 1 -0.785395307179586
+}
+FastFoodRestaurant {
+  translation -59.1604 -46.0262 -8.52651e-14
+  rotation 0 0 1 -0.785395307179586
+}
+Barn {
+  translation -50.7592 -37.6943 7.10543e-14
+  rotation 0 0 1 -0.785395307179586
+}
