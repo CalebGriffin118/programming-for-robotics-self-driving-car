@@ -3,12 +3,17 @@ from controller import Camera, Robot, Lidar, DistanceSensor
 import math
 import heapq
 import itertools
+import numpy as np
+import cv2
 
 
 driver = Driver()
 timestep = int(driver.getBasicTimeStep())
 camera = driver.getDevice("front_camera")
 camera.enable(timestep)
+W = camera.getWidth()
+H = camera.getHeight()
+MAX_AREA = (W * H) * 0.4
 compass = driver.getDevice("car_compass")
 compass.enable(timestep)
 gps = driver.getDevice("carGPS")
@@ -28,6 +33,15 @@ min_car_distance = 2.5
 mainIntersctions = [(-61.6, -16.1, 1.4), (-38.3, -38.7, 1.4), (0, 0, 1.4), (-22.2, 22.4, 1.4)]
 intersections = [(-41.3, -41.3, 1.4), (-41.3, -41.3, 1.4), (-41.3, -41.3, 1.4), (-2.4, -2.3, 1.4), (2.6, 2.7, 1.4), (2.7, -2.8, 1.4), (-2.8, 2.6, 1.4), (-19.5, 19.4, 1.4), (-24.9, 24.7, 1.4), (-25, 19.8, 1.4), (-58.7, -13.8, 1.4), (-64, -19, 1.4), (-58.3, -18.6, 1.4), (-64.2, -13.7, 1.4)]
 STATE = "DRIVING"
+
+alpha = 0.2
+red_score = 0.0
+
+stop_counter = 0
+yield_counter = 0
+traffic_counter = 0
+
+MIN_CONFIRM_FRAMES = 5
 
 if lidar is None:
     print("Lidar sensor not found")
@@ -279,52 +293,106 @@ def lidarDetect(lidar_sensor):
     return min_dist
 
 
-while driver.step() != -1:
-    img = camera.getImage()
+def cameraDetect(rgb, hsv):
+    global red_score, stop_counter, yield_counter, traffic_counter
 
-    front_distance = lidarDetect(lidar)
-    obstacle_detected = front_distance < min_car_distance
+    mask1 = cv2.inRange(hsv, (0, 70, 50), (10, 255, 255))
+    mask2 = cv2.inRange(hsv, (170, 70, 50), (180, 255, 255))
+    mask = mask1 + mask2
 
-# Lidar safety override
-    if obstacle_detected:
-        driver.setSteeringAngle(0)
-        driver.setCruisingSpeed(0.0)
-        driver.setBrakeIntensity(0.8)
-        print(f"🚨 OBSTACLE DETECTED! Speed = {driver.getCurrentSpeed():.1f} km/h")
-        continue
+    roi = mask[0:int(H * 0.5), 0:int(W * 0.5)]
+
+    red_pixels = np.sum(roi > 0)
+    detection = red_pixels / roi.size
+    red_score = alpha * detection + (1 - alpha) * red_score
+    print("RED SCORE: ", red_score)
+
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    detected_shape = None
+    best_area = 0
+
+    for cnt in contours:
+        area = cv2.contourArea(cnt)
+        if area < 800:
+            continue
+
+        approx = cv2.approxPolyDP(cnt, 0.04 * cv2.arcLength(cnt, True), True)
+        sides = len(approx)
+
+        if area > best_area:
+            best_area = area
+            if sides >= 7:
+                detected_shape = "STOP"
+            elif sides == 3:
+                detected_shape = "GIVE_WAY"
+
+    # traffic light detection
+    black_mask = cv2.inRange(hsv, (0, 0, 0), (180, 255, 60))
+    tl_contours, _ = cv2.findContours(black_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    traffic_state = "UNKNOWN"
+
+    for cnt in tl_contours:
+        area = cv2.contourArea(cnt)
+        if area < 800 or area > 8000:
+            continue
+
+        x, y, w, h = cv2.boundingRect(cnt)
+
+        if h / (w + 1e-6) > 1.8 and y < H * 0.7:
+            roi_tl = rgb[y:y+h, x:x+w]
+            hsv_tl = cv2.cvtColor(roi_tl, cv2.COLOR_BGR2HSV)
+
+            red_tl = cv2.inRange(hsv_tl, (0, 70, 50), (10, 255, 255)) + \
+                     cv2.inRange(hsv_tl, (170, 70, 50), (180, 255, 255))
+
+            green_tl = cv2.inRange(hsv_tl, (40, 70, 50), (90, 255, 255))
+
+            if np.sum(red_tl > 0) > np.sum(green_tl > 0):
+                traffic_state = "RED"
+            else:
+                traffic_state = "GREEN"
+            break
+
+    # ----------------------------
+    # COUNTERS / DECISION LOGIC
+    # ----------------------------
+
+    if detected_shape == "STOP" and red_score > 0.015:
+        stop_counter += 1
     else:
-        driver.setBrakeIntensity(0.0)
+        stop_counter = max(0, stop_counter - 1)
 
-    if path_idx >= len(path):
-        STATE = "PARK"
+    if detected_shape == "GIVE_WAY" and red_score > 0.015:
+        yield_counter += 1
+    else:
+        yield_counter = max(0, yield_counter - 1)
 
-    if STATE == "TURNING":
-        if counter == 0:
-            direction = getDirection(path[path_idx - 1], path[path_idx])
-            start_heading = get_heading()
-            counter = 1
+    if traffic_state == "RED":
+        traffic_counter += 1
+    else:
+        traffic_counter = max(0, traffic_counter - 1)
 
-        STATE, path_idx, _ = turning(direction, start_heading, path_idx)
+    stop_counter = max(0, min(stop_counter, MIN_CONFIRM_FRAMES + 2))
+    yield_counter = max(0, min(yield_counter, MIN_CONFIRM_FRAMES + 2))
+    traffic_counter = max(0, min(traffic_counter, MIN_CONFIRM_FRAMES + 2))
 
-    elif STATE == "DRIVING":
-        path_idx, STATE, _ = drive(gps.getValues(), path_idx, path, STATE)
-        counter = 0
+    # ----------------------------
+    # RETURN DECISION (IMPORTANT)
+    # ----------------------------
 
-    elif STATE == "PARK":
-        driver.setSteeringAngle(0)
-        driver.setCruisingSpeed(0)
-        graph.newHead(gps.getValues())
-        path = navigate(graph, (-38.3, -38.7, 1.4))
-        STATE = "DRIVING"
-        path_idx = 0
-        counter = 0
+    if traffic_counter >= MIN_CONFIRM_FRAMES and traffic_state == "RED":
+        return "RED_LIGHT_STOP"
 
-    print(f"Direction: {direction}, State: {STATE}, path_idx: {path_idx}")
-    print("________________________________")
+    elif stop_counter >= MIN_CONFIRM_FRAMES:
+        return "STOP_SIGN"
 
+    elif yield_counter >= MIN_CONFIRM_FRAMES:
+        return "GIVE_WAY"
 
-def cameraDetect(camera_input):
-    pass
+    else:
+        return "DRIVE"
 
 
 def laneDetect():
@@ -390,4 +458,56 @@ def detectRain(obstacle_detected):
         return True
 
     return False
+
+while driver.step() != -1:
+    image = camera.getImage()
+
+    img = np.frombuffer(image, np.uint8).reshape((H, W, 4)).copy()
+    rgb = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+    hsv = cv2.cvtColor(rgb, cv2.COLOR_BGR2HSV)
+    
+    trafficDetection = cameraDetect(rgb, hsv)
+    
+    if trafficDetection in ["RED_LIGHT_STOP", "STOP_SIGN", "GIVE_WAY"]:
+        print(trafficDetection)
+
+    front_distance = lidarDetect(lidar)
+    obstacle_detected = front_distance < min_car_distance
+
+# Lidar safety override
+    if obstacle_detected:
+        driver.setSteeringAngle(0)
+        driver.setCruisingSpeed(0.0)
+        driver.setBrakeIntensity(0.8)
+        print(f"🚨 OBSTACLE DETECTED! Speed = {driver.getCurrentSpeed():.1f} km/h")
+        continue
+    else:
+        driver.setBrakeIntensity(0.0)
+
+    if path_idx >= len(path):
+        STATE = "PARK"
+
+    if STATE == "TURNING":
+        if counter == 0:
+            direction = getDirection(path[path_idx - 1], path[path_idx])
+            start_heading = get_heading()
+            counter = 1
+
+        STATE, path_idx, _ = turning(direction, start_heading, path_idx)
+
+    elif STATE == "DRIVING":
+        path_idx, STATE, _ = drive(gps.getValues(), path_idx, path, STATE)
+        counter = 0
+
+    elif STATE == "PARK":
+        driver.setSteeringAngle(0)
+        driver.setCruisingSpeed(0)
+        graph.newHead(gps.getValues())
+        path = navigate(graph, (-38.3, -38.7, 1.4))
+        STATE = "DRIVING"
+        path_idx = 0
+        counter = 0
+
+    print(f"Direction: {direction}, State: {STATE}, path_idx: {path_idx}")
+    print("________________________________")
 
