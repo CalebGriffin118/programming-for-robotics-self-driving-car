@@ -41,6 +41,9 @@ traffic_counter = 0
 
 MIN_CONFIRM_FRAMES = 5
 
+inertial_unit = driver.getDevice("car_inertial_unit")
+inertial_unit.enable(timestep)
+
 if lidar is None:
     print("Lidar sensor not found")
 else:
@@ -393,62 +396,17 @@ def cameraDetect(rgb, hsv):
     # RETURN DECISION (IMPORTANT)
     # ----------------------------
 
-<<<<<<< HEAD
-    elif STATE == "PARK":
-        driver.setSteeringAngle(0)
-        driver.setCruisingSpeed(0)
-        graph.newHead(gps.getValues())
-        path = navigate(graph, (-22, 22, 1.4))
-        STATE = "DRIVING"
-        path_idx = 0
-        counter = 0
-
-    print(f"Direction: {direction}, State: {STATE}, path_idx: {path_idx}")
-    temp2 = []
-    for i in path:
-        temp2.append(i.position)
-    print(f"Path: {temp2}")
-    print(f"GPS: {gps.getValues()}")
-    print("________________________________")
-=======
     if traffic_counter >= MIN_CONFIRM_FRAMES and traffic_state == "RED":
         return "RED_LIGHT_STOP"
 
     elif stop_counter >= MIN_CONFIRM_FRAMES:
         return "STOP_SIGN"
->>>>>>> 4a161aabdde7a505334d119c6809cfab4060ccd6
 
     elif yield_counter >= MIN_CONFIRM_FRAMES:
         return "GIVE_WAY"
 
     else:
         return "DRIVE"
-
-<<<<<<< HEAD
-def lidarDetect(lidar_sensor):
-    # detects distance of objects in lidar
-    #if not lidar_sensor:
-        #return False
-    
-    ranges = lidar_sensor.getRangeImage()
-    if not ranges: 
-        return float('inf')
-    middle_ray = len(ranges)//2
-    # horizontal = 512
-    # middle_layer_start = 3*horizontal
-    front_portion = ranges[middle_ray - 80 : middle_ray + 80]
-    center_rays = ranges[middle_ray - 25 : middle_ray + 25]
-    main_ray = ranges[middle_ray : middle_ray]
-    all_relevant = front_portion + center_rays + main_ray
-    valid_distances = [d for d in all_relevant if 0<d<100]
-    
-    if not valid_distances:
-        return float('inf')
-    min_dist = min(valid_distances)
-    # print(f"LiDAR -> closest front obstacle: {min_dist:.2f}")
-    return min_dist
-=======
->>>>>>> 9f8d32786eb86fcb73851da21d5dd92b5424b905
 
 def laneDetect():
     pass
