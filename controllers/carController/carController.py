@@ -8,17 +8,6 @@ import itertools
 driver = Driver()
 timestep = int(driver.getBasicTimeStep())
 camera = driver.getDevice("front_camera")
-<<<<<<< HEAD
-camera.enable(32)
-inertial_unit = driver.getDevice("car_inertial_unit")
-inertial_unit.enable(32)
-gps = driver.getDevice("carGPS")
-gps.enable(32)
-
-compass = driver.getDevice("car_compass")
-compass.enable(32)
-
-=======
 camera.enable(timestep)
 compass = driver.getDevice("car_compass")
 compass.enable(timestep)
@@ -33,11 +22,19 @@ normal_drive_steps = 0
 normal_speed = 50.0
 rain_speed = 8.0
 lidar = driver.getDevice("lidar")
-min_car_distance = 5
->>>>>>> bfedc381094708e70f6393400aad1e95fddeaefe
+inertial_unit = driver.getDevice("car_inertial_unit")
+inertial_unit.enable(timestep)
+min_car_distance = 2.5
 mainIntersctions = [(-61.6, -16.1, 1.4), (-38.3, -38.7, 1.4), (0, 0, 1.4), (-22.2, 22.4, 1.4)]
 intersections = [(-41.3, -41.3, 1.4), (-41.3, -41.3, 1.4), (-41.3, -41.3, 1.4), (-2.4, -2.3, 1.4), (2.6, 2.7, 1.4), (2.7, -2.8, 1.4), (-2.8, 2.6, 1.4), (-19.5, 19.4, 1.4), (-24.9, 24.7, 1.4), (-25, 19.8, 1.4), (-58.7, -13.8, 1.4), (-64, -19, 1.4), (-58.3, -18.6, 1.4), (-64.2, -13.7, 1.4)]
 STATE = "DRIVING"
+
+if lidar is None:
+    print("Lidar sensor not found")
+else:
+    lidar.enable(timestep)
+    lidar.enablePointCloud()
+    print("LiDar Enabled :)")   
 
 def get_heading():
     rpy = inertial_unit.getRollPitchYaw()
@@ -161,35 +158,45 @@ path = navigate(graph, (0, 0, 1.4))
 
 
 def turning(direction, start_heading, path_idx, turn_angle=math.pi / 2):
-    if direction == "AHEAD":
+    front_distance  = lidarDetect(lidar)
+    obstacle_detected = front_distance < min_car_distance
+
+# Lidar safety override
+    if obstacle_detected:
         driver.setSteeringAngle(0)
+        driver.setCruisingSpeed(0.0)
+        driver.setBrakeIntensity(0.8)
+        print(f"🚨 OBSTACLE DETECTED! Speed = {driver.getCurrentSpeed():.1f} km/h")
+    else:
+        if direction == "AHEAD":
+            driver.setSteeringAngle(0)
+            driver.setCruisingSpeed(5)
+            return "DRIVING", path_idx + 1, get_heading()
+
+        heading_rad = get_heading()
+
+        if direction == "LEFT":
+            driver.setSteeringAngle(-0.6)
+            turned = (start_heading - heading_rad) % (2 * math.pi)
+        else:
+            driver.setSteeringAngle(0.25)
+            turned = (heading_rad - start_heading) % (2 * math.pi)
+
         driver.setCruisingSpeed(5)
-        return "DRIVING", path_idx + 1, get_heading()
 
-    heading_rad = get_heading()
+        # If we crossed the boundary, the complement is the real angle
+        if turned > math.pi:
+            turned = (2 * math.pi) - turned
 
-    if direction == "LEFT":
-        driver.setSteeringAngle(-0.6)
-        turned = (start_heading - heading_rad) % (2 * math.pi)
-    else:
-        driver.setSteeringAngle(0.25)
-        turned = (heading_rad - start_heading) % (2 * math.pi)
+        remaining = turn_angle - turned
 
-    driver.setCruisingSpeed(5)
+        print(f"Start: {start_heading:.3f} | Current: {heading_rad:.3f} | Turned: {turned:.3f} | Remaining: {remaining:.3f}")
 
-    # If we crossed the boundary, the complement is the real angle
-    if turned > math.pi:
-        turned = (2 * math.pi) - turned
-
-    remaining = turn_angle - turned
-
-    print(f"Start: {start_heading:.3f} | Current: {heading_rad:.3f} | Turned: {turned:.3f} | Remaining: {remaining:.3f}")
-
-    if remaining < 0.052:
-        driver.setSteeringAngle(0)
-        return "DRIVING", path_idx + 1, heading_rad
-    else:
-        return "TURNING", path_idx, heading_rad
+        if remaining < 0.052:
+            driver.setSteeringAngle(0)
+            return "DRIVING", path_idx + 1, heading_rad
+        else:
+            return "TURNING", path_idx, heading_rad
 
 
 
@@ -217,20 +224,30 @@ def getDirection(robot_pos, target_pos):
 def drive(gps_pos, path_idx, path, STATE):
     dist = manhattan_distance(gps_pos, path[path_idx].position)
     print(f"Dist: {dist}")
-    if isinstance(path[path_idx], MainNode) and dist < 15:
-        path_idx += 1
+    front_distance  = lidarDetect(lidar)
+    obstacle_detected = front_distance < min_car_distance
 
-    if path_idx >= len(path):
-        return path_idx, STATE, get_heading()
-
-    if isinstance(path[path_idx], SubNode):
-        STATE = "TURNING"
-    elif isinstance(path[path_idx], MainNode):
+# Lidar safety override
+    if obstacle_detected:
         driver.setSteeringAngle(0)
-        driver.setCruisingSpeed(20)
-        STATE = "DRIVING"
+        driver.setCruisingSpeed(0.0)
+        driver.setBrakeIntensity(0.8)
+        print(f"🚨 OBSTACLE DETECTED! Speed = {driver.getCurrentSpeed():.1f} km/h")
+    else:
+        if isinstance(path[path_idx], MainNode) and dist < 15:
+            path_idx += 1
 
-    return path_idx, STATE, get_heading()
+        if path_idx >= len(path):
+            return path_idx, STATE, get_heading()
+
+        if isinstance(path[path_idx], SubNode):
+            STATE = "TURNING"
+        elif isinstance(path[path_idx], MainNode):
+            driver.setSteeringAngle(0)
+            driver.setCruisingSpeed(10)
+            STATE = "DRIVING"
+
+        return path_idx, STATE, get_heading()
 
 
 path_idx = 0
@@ -238,8 +255,45 @@ direction = None
 start_heading = None
 counter = 0
 
+def lidarDetect(lidar_sensor):
+    # detects distance of objects in lidar
+    #if not lidar_sensor:
+        #return False
+    
+    ranges = lidar_sensor.getRangeImage()
+    if not ranges: 
+        return float('inf')
+    middle_ray = len(ranges)//2
+    # horizontal = 512
+    # middle_layer_start = 3*horizontal
+    front_portion = ranges[middle_ray - 120 : middle_ray + 120]
+    center_rays = ranges[middle_ray - 25 : middle_ray + 25]
+    main_ray = ranges[middle_ray : middle_ray]
+    all_relevant = front_portion + center_rays + main_ray
+    valid_distances = [d for d in all_relevant if 0<d<100]
+    
+    if not valid_distances:
+        return float('inf')
+    min_dist = min(valid_distances)
+    print(f"LiDAR -> closest front obstacle: {min_dist:.2f}")
+    return min_dist
+
+
 while driver.step() != -1:
     img = camera.getImage()
+
+    front_distance = lidarDetect(lidar)
+    obstacle_detected = front_distance < min_car_distance
+
+# Lidar safety override
+    if obstacle_detected:
+        driver.setSteeringAngle(0)
+        driver.setCruisingSpeed(0.0)
+        driver.setBrakeIntensity(0.8)
+        print(f"🚨 OBSTACLE DETECTED! Speed = {driver.getCurrentSpeed():.1f} km/h")
+        continue
+    else:
+        driver.setBrakeIntensity(0.0)
 
     if path_idx >= len(path):
         STATE = "PARK"
@@ -272,33 +326,6 @@ while driver.step() != -1:
 def cameraDetect(camera_input):
     pass
 
-<<<<<<< HEAD
-def lidarDetect(lidar_input):
-    pass
-=======
-def lidarDetect(lidar_sensor):
-    # detects distance of objects in lidar
-    #if not lidar_sensor:
-        #return False
-    
-    ranges = lidar_sensor.getRangeImage()
-    if not ranges: 
-        return float('inf')
-    middle_ray = len(ranges)//2
-    # horizontal = 512
-    # middle_layer_start = 3*horizontal
-    front_portion = ranges[middle_ray - 80 : middle_ray + 80]
-    center_rays = ranges[middle_ray - 25 : middle_ray + 25]
-    main_ray = ranges[middle_ray : middle_ray]
-    all_relevant = front_portion + center_rays + main_ray
-    valid_distances = [d for d in all_relevant if 0<d<100]
-    
-    if not valid_distances:
-        return float('inf')
-    min_dist = min(valid_distances)
-    # print(f"LiDAR -> closest front obstacle: {min_dist:.2f}")
-    return min_dist
->>>>>>> bfedc381094708e70f6393400aad1e95fddeaefe
 
 def laneDetect():
     pass
@@ -306,10 +333,6 @@ def laneDetect():
 def detectNight():
     pass
 
-<<<<<<< HEAD
-def detectRain():
-    pass
-=======
 def detectRain(obstacle_detected):
     global rain_counter, rain_mode, previous_speed, normal_drive_steps
 
@@ -368,4 +391,3 @@ def detectRain(obstacle_detected):
 
     return False
 
->>>>>>> bfedc381094708e70f6393400aad1e95fddeaefe
