@@ -1,12 +1,14 @@
 from vehicle import Driver
-from controller import Camera, Robot
+from controller import Camera, Robot, Lidar, DistanceSensor
 import math
 import heapq
 import itertools
 
 
 driver = Driver()
+timestep = int(driver.getBasicTimeStep())
 camera = driver.getDevice("front_camera")
+<<<<<<< HEAD
 camera.enable(32)
 inertial_unit = driver.getDevice("car_inertial_unit")
 inertial_unit.enable(32)
@@ -16,6 +18,23 @@ gps.enable(32)
 compass = driver.getDevice("car_compass")
 compass.enable(32)
 
+=======
+camera.enable(timestep)
+compass = driver.getDevice("car_compass")
+compass.enable(timestep)
+gps = driver.getDevice("carGPS")
+gps.enable(timestep)
+rain_counter = 0
+minimum_expected_acceleration = 1.0
+rain_counter = 0
+rain_mode = False
+previous_speed = 0.0
+normal_drive_steps = 0
+normal_speed = 50.0
+rain_speed = 8.0
+lidar = driver.getDevice("lidar")
+min_car_distance = 5
+>>>>>>> bfedc381094708e70f6393400aad1e95fddeaefe
 mainIntersctions = [(-61.6, -16.1, 1.4), (-38.3, -38.7, 1.4), (0, 0, 1.4), (-22.2, 22.4, 1.4)]
 intersections = [(-41.3, -41.3, 1.4), (-41.3, -41.3, 1.4), (-41.3, -41.3, 1.4), (-2.4, -2.3, 1.4), (2.6, 2.7, 1.4), (2.7, -2.8, 1.4), (-2.8, 2.6, 1.4), (-19.5, 19.4, 1.4), (-24.9, 24.7, 1.4), (-25, 19.8, 1.4), (-58.7, -13.8, 1.4), (-64, -19, 1.4), (-58.3, -18.6, 1.4), (-64.2, -13.7, 1.4)]
 STATE = "DRIVING"
@@ -253,8 +272,33 @@ while driver.step() != -1:
 def cameraDetect(camera_input):
     pass
 
+<<<<<<< HEAD
 def lidarDetect(lidar_input):
     pass
+=======
+def lidarDetect(lidar_sensor):
+    # detects distance of objects in lidar
+    #if not lidar_sensor:
+        #return False
+    
+    ranges = lidar_sensor.getRangeImage()
+    if not ranges: 
+        return float('inf')
+    middle_ray = len(ranges)//2
+    # horizontal = 512
+    # middle_layer_start = 3*horizontal
+    front_portion = ranges[middle_ray - 80 : middle_ray + 80]
+    center_rays = ranges[middle_ray - 25 : middle_ray + 25]
+    main_ray = ranges[middle_ray : middle_ray]
+    all_relevant = front_portion + center_rays + main_ray
+    valid_distances = [d for d in all_relevant if 0<d<100]
+    
+    if not valid_distances:
+        return float('inf')
+    min_dist = min(valid_distances)
+    # print(f"LiDAR -> closest front obstacle: {min_dist:.2f}")
+    return min_dist
+>>>>>>> bfedc381094708e70f6393400aad1e95fddeaefe
 
 def laneDetect():
     pass
@@ -262,5 +306,66 @@ def laneDetect():
 def detectNight():
     pass
 
+<<<<<<< HEAD
 def detectRain():
     pass
+=======
+def detectRain(obstacle_detected):
+    global rain_counter, rain_mode, previous_speed, normal_drive_steps
+
+    actual_speed = driver.getCurrentSpeed()
+    target_speed = driver.getTargetCruisingSpeed()
+
+    delta_time = timestep / 1000.0
+    actual_acceleration = (actual_speed - previous_speed) / delta_time
+    previous_speed = actual_speed
+
+    # Once rain has been detected, stay in rain mode.
+    # Do not let the reduced rain speed reset the detection.
+    if rain_mode:
+        return True
+
+    # Do not analyse traction while emergency braking.
+    if obstacle_detected:
+        rain_counter = 0
+        normal_drive_steps = 0
+        return False
+
+    # Only detect rain while we are requesting normal driving speed.
+    if target_speed < normal_speed - 0.1:
+        rain_counter = 0
+        normal_drive_steps = 0
+        return False
+
+    normal_drive_steps += 1
+
+    # Ignore the first few frames after commanding acceleration.
+    # The car is initially stationary, so the first readings can be noisy.
+    if normal_drive_steps < 15:
+        return False
+
+    trying_to_accelerate = actual_speed < target_speed - 3.0
+
+    # The car is meant to be gaining speed, but it is barely accelerating
+    # or is actually slowing down.
+    poor_traction = actual_acceleration < minimum_expected_acceleration
+
+    if trying_to_accelerate and poor_traction:
+        rain_counter += 1
+        print(
+            f"Possible slip: speed={actual_speed:.1f} km/h, "
+            f"acceleration={actual_acceleration:.2f} km/h/s, "
+            f"counter={rain_counter}"
+        )
+    else:
+        rain_counter = max(0, rain_counter - 1)
+
+    # At 32 ms timestep, 25 frames is about 0.8 seconds.
+    if rain_counter > 25:
+        rain_mode = True
+        print(" Rain / Low Traction Detected! Switching to rain mode.")
+        return True
+
+    return False
+
+>>>>>>> bfedc381094708e70f6393400aad1e95fddeaefe
