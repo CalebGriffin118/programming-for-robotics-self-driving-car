@@ -375,6 +375,15 @@ TeslaModel3 {
   translation -64.5411 -11.1407 0.773781
   rotation -0.013992559257213155 -0.02950444527199016 -0.9994667057959585 0.7788177351933703
   controller "carController"
+  sensorsSlotFront [
+    Lidar {
+      translation 0 0 0.01
+      fieldOfView 2
+      verticalFieldOfView 0.5
+      numberOfLayers 1
+      maxRange 16
+    }
+  ]
   sensorsSlotCenter [
     Compass {
       name "car_compass"
