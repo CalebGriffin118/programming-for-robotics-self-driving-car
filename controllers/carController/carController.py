@@ -199,7 +199,6 @@ def turning(direction, start_heading, path_idx, turn_angle=math.pi / 2):
             return "TURNING", path_idx, heading_rad
 
 
-
 def getDirection(robot_pos, target_pos):
     north = compass.getValues()
     heading_rad = math.atan2(north[0], north[2])
