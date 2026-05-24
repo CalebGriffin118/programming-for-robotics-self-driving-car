@@ -9,15 +9,21 @@ import cv2
 
 driver = Driver()
 timestep = int(driver.getBasicTimeStep())
+
+
+
+
 camera = driver.getDevice("front_camera")
-camera.enable(timestep)
-W = camera.getWidth()
-H = camera.getHeight()
-MAX_AREA = (W * H) * 0.4
+
+
 compass = driver.getDevice("car_compass")
-compass.enable(timestep)
+
 gps = driver.getDevice("carGPS")
-gps.enable(timestep)
+lidar = driver.getDevice("lidar")
+front_bumper_camera = driver.getDevice("front_bumper_camera")
+inertial_unit = driver.getDevice("car_inertial_unit")
+
+
 rain_counter = 0
 minimum_expected_acceleration = 1.0
 rain_counter = 0
@@ -25,9 +31,10 @@ rain_mode = False
 previous_speed = 0.0
 normal_drive_steps = 0
 rain_speed = 8.0
-lidar = driver.getDevice("lidar")
-front_bumper_camera = driver.getDevice("front_bumper_camera")
-front_bumper_camera.enable(timestep)
+
+route_idx = 0
+ROUTE = [(-22, 22, 1.4), (-38.3, -38.4, 1.4)]
+
 min_car_distance = 2.5
 mainIntersctions = [(-61.6, -16.5, 1.4), (-38.3, -38.4, 1.4 ), (0, 0, 1.4), (-22, 22, 1.4)]
 intersections = [(-33.5, -33.5, 1.4), (-43, -43, 1.4), (-43, -33, 1.4), (-4.4, -4.4, 1.4), (4.4, 4.4, 1.4), (4.4, -24.7, 1.4), (-4.9, 4.4, 1.4), (-17.5, 18, 1.4), (-26, 26, 1.4), (-26.5, 18, 1.4), (-56, -11, 1.4), (-64, -20, 1.4), (-57.8, -19, 1.4), (-65, -13, 1.4)]
@@ -58,9 +65,6 @@ POST_TURN_FRAMES = 70            # ~0.8 seconds at 32 ms timestep
 
 MIN_CONFIRM_FRAMES = 5
 
-inertial_unit = driver.getDevice("car_inertial_unit")
-inertial_unit.enable(timestep)
-
 
 lane_correction_mode = "NONE"
 LANE_TARGET_X         = 265
@@ -71,20 +75,36 @@ LANE_TOO_FAR          = 288
 LANE_X_ALPHA          = 0.40
 previous_line_x = float(LANE_TARGET_X)
 
+MODE = "CITY_MODE"
 
 
-if lidar is None:
-    print("Lidar sensor not found")
-else:
+path_idx = 0
+direction = None
+start_heading = None
+counter = 0
+
+if all(s is not None for s in [camera, compass, gps, front_bumper_camera, inertial_unit, lidar]):
+    camera.enable(timestep)
+    W = camera.getWidth()
+    H = camera.getHeight()
+    MAX_AREA = (W * H) * 0.4
+    compass.enable(timestep)
+    gps.enable(timestep)
+    front_bumper_camera.enable(timestep)
+    inertial_unit.enable(timestep)
     lidar.enable(timestep)
     lidar.enablePointCloud()
-    print("LiDar Enabled :)")   
+else:
+    STATE = "ERROR"
 
+# get the heading of the car
+#  @return heading in radians
 def get_heading():
     rpy = inertial_unit.getRollPitchYaw()
     yaw = rpy[2]  # yaw is index 2
     return (yaw + 2 * math.pi) % (2 * math.pi)
 
+# main node for navigation one for each intersection
 class MainNode():
     def __init__(self, pos, avaliable):
         self.position = pos
@@ -92,11 +112,13 @@ class MainNode():
         self.children = []
         self.avaliable = avaliable
 
+# subnodes are children of main nodes they are all possible turns that can be done at an interscetion
 class SubNode():
     def __init__(self, pos, avaliable):
         self.position = pos
         self.avaliable = avaliable
 
+# a graph representing all the intersections
 class Graph():
     def __init__(self, currentPos):
         self.intersections = []
@@ -149,6 +171,7 @@ class Graph():
 
 
 # calcualte the manhattan distance between two coordinates
+# @return distnace
 def manhattan_distance(a, b):
     distance = 0
     for i in range(len(a)):
@@ -156,6 +179,7 @@ def manhattan_distance(a, b):
     return distance
 
 # use the a* heuristic to find a quick path between two nodes in the graph
+# @returns list of MainNode and SubNode objects
 def a_star(startNode, goalNode):
     counter = itertools.count()
     priorityQueue = []
@@ -213,10 +237,6 @@ def navigate(graph, target_pos):
     return coord_path
 
 
-graph = Graph(gps.getValues())
-path = navigate(graph, (-22, 22, 1.4))
-
-
 # turn the car depending on the direction
 # @return the number of radians the car has turned
 def turnCar(direction, heading_rad, start_heading):
@@ -249,7 +269,7 @@ def turning(direction, start_heading, path_idx, turn_angle=math.pi / 2):
     obstacle_detected = front_distance < getDynamicMinDistance(driver.getCurrentSpeed())
     heading_rad = get_heading()
 
-# Lidar safety override
+    # Lidar safety override
     if obstacle_detected:
         stopCarLIDAR()
         return "TURNING", path_idx, heading_rad 
@@ -291,7 +311,6 @@ def getDirection(robot_pos, target_pos):
     dz = target_pos.position[2] - robot_pos.position[2]
 
     cross = fx * dz - fz * dx
-    print(cross)
     if abs(cross) < 0.029:
         return "AHEAD"
     elif cross > 0:
@@ -325,7 +344,7 @@ def drive(gps_pos, path_idx, path, STATE, drive_speed):
             path_idx += 1
 
         if path_idx >= len(path):
-            return path_idx, STATE, get_heading()
+            return path_idx, "ARRIVED", get_heading()
 
         # we only turn at subnodes so set the state to turning if we are at one
         if isinstance(path[path_idx], SubNode):
@@ -337,10 +356,6 @@ def drive(gps_pos, path_idx, path, STATE, drive_speed):
         return path_idx, STATE, get_heading()
 
 
-path_idx = 0
-direction = None
-start_heading = None
-counter = 0
 
 # detects distance of objects in lidar returns the closest object to the car
 # @return min_dist
@@ -742,9 +757,8 @@ def getDynamicMinDistance(current_speed):
     else:
        return 2.5
 
-
-
-MODE = "CITY_MODE"
+graph = Graph(gps.getValues())
+path = navigate(graph, ROUTE[0])
 
 while driver.step() != -1:
 
@@ -790,7 +804,9 @@ while driver.step() != -1:
     if path_idx >= len(path):
         STATE = "PARK"
 
-    if STATE == "TURNING":
+    if STATE == "ERROR":
+        break
+    elif STATE == "TURNING":
         if counter == 0:
             direction = getDirection(path[path_idx - 1], path[path_idx])
             start_heading = get_heading()
@@ -798,17 +814,6 @@ while driver.step() != -1:
 
         STATE, path_idx, _ = turning(direction, start_heading, path_idx)
 
-    # elif STATE == "DRIVING":
-    #     lane_steering = laneDetect()          # still runs for debug / printing
-    #     driver.setSteeringAngle(0.0)          # <--- DISABLE lane steering for now
-
-    #     if post_turn_stabilize > 0:
-    #         post_turn_stabilize -= 1
-    #         current_drive_speed = min(current_drive_speed, 10.0)
-    #         print(f"POST-TURN STABILIZE ({post_turn_stabilize} left) | Speed capped at 10")
-
-    #     path_idx, STATE, _ = drive(gps.getValues(), path_idx, path, STATE, current_drive_speed)
-    #     counter = 0
     elif STATE == "DRIVING":
         lane_steering = laneDetect()
         driver.setSteeringAngle(lane_steering)
@@ -819,8 +824,12 @@ while driver.step() != -1:
     elif STATE == "PARK":
         driver.setSteeringAngle(0)
         driver.setCruisingSpeed(0)
+
+    elif STATE == "ARRIVED":
+        route_idx += 1
         graph.newHead(gps.getValues())
-        path = navigate(graph, (-38.3, -38.4, 1.4))
+        path = navigate(graph, ROUTE[route_idx])
+        print(path)
         STATE = "DRIVING"
         path_idx = 0
         counter = 0
