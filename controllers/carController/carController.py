@@ -39,6 +39,8 @@ red_score = 0.0
 stop_counter = 0
 yield_counter = 0
 traffic_counter = 0
+stop_frames = 0
+cooldown_frames = 0
 
 slip_timer = 0.0
 recheck_timer = 0.0
@@ -427,10 +429,16 @@ def detectTrafficLight(rgb, hsv):
         roi_tl  = rgb[y:y+h, x:x+w]
         hsv_tl  = cv2.cvtColor(roi_tl, cv2.COLOR_BGR2HSV)
  
-        red_px   = np.sum(
-            cv2.inRange(hsv_tl, (0,   70, 50), (10,  255, 255)) +
-            cv2.inRange(hsv_tl, (170, 70, 50), (180, 255, 255)) > 0
+        red_mask = (
+            cv2.inRange(hsv_tl, (0, 70, 50), (10, 255, 255)) +
+            cv2.inRange(hsv_tl, (170, 70, 50), (180, 255, 255))
         )
+
+        red_px = np.sum(red_mask > 0)
+
+        cv2.imshow("Red Mask", red_mask)
+        cv2.waitKey(1)
+
         green_px = np.sum(
             cv2.inRange(hsv_tl, (40, 70, 50), (90, 255, 255)) > 0
         )
@@ -438,7 +446,34 @@ def detectTrafficLight(rgb, hsv):
         return "RED" if red_px > green_px else "GREEN"
  
     return "UNKNOWN"
+    
+#logic for different traffic signs/lights
+#@returns STOP/GO state
+def handleTraffic(trafficDetection, red_score):
+    global stop_frames, cooldown_frames
 
+    if stop_frames > 0:
+        stop_frames -= 1
+
+    if cooldown_frames > 0:
+        cooldown_frames -= 1
+
+    if (trafficDetection == "STOP_SIGN" and cooldown_frames == 0 and stop_frames == 0):
+        stop_frames = 94
+        cooldown_frames = 156
+
+    if stop_frames > 0:
+        return "STOP"
+
+    if trafficDetection == "RED_LIGHT_STOP" and red_score > 0.001:
+        return "STOP"
+
+    if trafficDetection == "GIVE_WAY" and cooldown_frames == 0:
+        stop_frames = 30
+        cooldown_frames = 150
+        return "STOP"
+
+    return "GO"
 # updates the counters for camera detection
 # @return void/nothing
 def updateCounters(detected_shape, traffic_state):
@@ -446,12 +481,12 @@ def updateCounters(detected_shape, traffic_state):
  
     cap = MIN_CONFIRM_FRAMES + 2
  
-    if detected_shape == "STOP"     and red_score > 0.015:
+    if detected_shape == "STOP"     and red_score > 0.045:
         stop_counter += 1
     else:
         stop_counter = max(0, stop_counter - 1)
  
-    if detected_shape == "GIVE_WAY" and red_score > 0.015:
+    if detected_shape == "GIVE_WAY" and red_score > 0.045:
         yield_counter += 1
     else:
         yield_counter = max(0, yield_counter - 1)
@@ -725,9 +760,14 @@ while driver.step() != -1:
     hsv = cv2.cvtColor(rgb, cv2.COLOR_BGR2HSV)
     
     trafficDetection = cameraDetect(rgb, hsv)
+    traffic_state = handleTraffic(trafficDetection, red_score)
     
-    if trafficDetection in ["RED_LIGHT_STOP", "STOP_SIGN", "GIVE_WAY"]:
-        print(trafficDetection)
+    if traffic_state == "STOP":
+        driver.setCruisingSpeed(0)
+        driver.setBrakeIntensity(0.8)
+        continue
+    else:
+        driver.setBrakeIntensity(0.0)
 
     front_distance = lidarDetect(lidar)
     obstacle_detected = front_distance < getDynamicMinDistance(driver.getCurrentSpeed())
