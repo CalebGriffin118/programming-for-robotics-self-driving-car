@@ -588,7 +588,6 @@ def getLaneMask():
 # @return a list of all candiates 
 def getLineCandidates(lane_mask):
     contours, _ = cv2.findContours(lane_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
     candidates = []
     for contour in contours:
         x, y, w, h = cv2.boundingRect(contour)
