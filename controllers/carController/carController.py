@@ -33,7 +33,7 @@ normal_drive_steps = 0
 rain_speed = 8.0
 
 route_idx = 0
-ROUTE = [(-62, -55, 1.4)]
+ROUTE = [(-3.8,  3.5,   1.4), (-62, -55, 1.4)]
 
 min_car_distance = 2.5
 STATE = "DRIVING"
