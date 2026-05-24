@@ -33,7 +33,7 @@ normal_drive_steps = 0
 rain_speed = 8.0
 
 route_idx = 0
-ROUTE = [(-19.7, 19.4,  1.4), (-3.8,  3.5,   1.4), (-42, -42.8, 1.4), (-62, -55, 1.4)]
+ROUTE = [(-62, -55, 1.4)]
 
 min_car_distance = 2.5
 STATE = "DRIVING"
@@ -50,7 +50,7 @@ cooldown_frames = 0
 slip_timer = 0.0
 recheck_timer = 0.0
 
-slip_detect_time = 0.2      # time allowed of bad acceleration
+slip_detect_time = 0.2     
 rain_recheck_time = 8.0
 normal_speed = 20
 rain_speed = 8.0
@@ -58,8 +58,8 @@ rain_speed = 8.0
 tracked_lane_x = None
 previous_lane_steering = 0.0
 lane_missed_frames = 0
-post_turn_stabilize = 0          # NEW: frames of gentle driving after a turn
-POST_TURN_FRAMES = 70            # ~0.8 seconds at 32 ms timestep
+post_turn_stabilize = 0          
+POST_TURN_FRAMES = 70           
 
 MIN_CONFIRM_FRAMES = 5
 
@@ -106,16 +106,11 @@ def get_heading():
 # a class for each node the car can move to 
 class Node():
     def __init__(self, pos, turns, connections):
-        """
-        pos         - (x, y, z) position
-        turns       - list of ("DIRECTION", (x, y, z)) for turns at this node
-        connections - list of (x, y, z) positions this node connects to (for a*)
-        """
+
         self.position    = pos
-        self.turns       = turns        # [("LEFT", pos), ("RIGHT", pos), ("AHEAD", pos)]
-        self.connections = connections  # neighbour positions for a* pathfinding
-        self.neighbours  = []           # filled in by Graph2.build_neighbours()
-        self.available   = True
+        self.turns       = turns        
+        self.connections = connections  
+        self.neighbours  = []           
 
     def getDirection(self, next_pos):
         print(f"Looking for turn to {next_pos} in {self.turns}")
@@ -157,8 +152,8 @@ class Graph2():
         self.build_neighbours()
         self.newHead(currentPos)
 
+
     def build_neighbours(self):
-        """Link each node to its neighbour Node objects using connection positions."""
         pos_to_node = {n.position: n for n in self.nodes}
         for node in self.nodes:
             for conn_pos in node.connections:
@@ -166,6 +161,7 @@ class Graph2():
                 if neighbour:
                     node.neighbours.append(neighbour)
 
+    # calcualte the distance between two 3d points
     def distance(self, currentPos, newPos):
         pairs = zip(currentPos, newPos)
         sum = 0
@@ -173,50 +169,13 @@ class Graph2():
             sum += abs(i[0] - i[1])
         return sum
 
+    # updates the current closest node
     def newHead(self, currPos):
         print(f"Looking for closest node to: {currPos}")
         for n in self.nodes:
             print(f"  {n.position} -> dist={self.distance(n.position, currPos)}")
         self.currNode = min(self.nodes, key=lambda n: self.distance(n.position, currPos))
         print(f"Closest node: {self.currNode.position}")
-
-
-
-# a graph representing all the intersections
-# class Graph2():
-#     def __init__(self, currentPos):
-#         self.nodes = []
-#         self.currNode = None
-#         # create each node
-#         self.nodes.append((-42, -42.8, 1.4), [("AHEAD", (-35.3, -35, 1.4)), ("LEFT", (-43, -35.7, 1.4))], [])
-#         self.nodes.append((-35.3, -35, 1.4), [("AHEAD", (-42, -42.8, 1.4)), ("RIGHT", (-43, -35.7, 1.4))], [(-2.8, -3.5, 1.4)])
-#         self.nodes.append((-43, -35.7, 1.4), [("LEFT", (-35.3, -35, 1.4)), ("RIGHT", (-42, -42.8, 1.4))], [(-58, -19.8, 1.4)])
-#         self.nodes.append((-58, -13, 1.4), [("AHEAD", (-64.7, -20, 1.4)), ("LEFT", (-58, -19.8, 1.4)), ((-65, -13, 1.4), "RIGHT")], [(-25, 19.3, 1.4)])
-#         self.nodes.append((-58, -19.8, 1.4), [("AHEAD", (-65, -13, 1.4)), ("LEFT", (-64.7, -20, 1.4)), ("RIGHT", (-58, -13, 1.4))], [(-43, -35.7, 1.4)])
-#         self.nodes.append((-65, -13, 1.4), [("AHEAD",(-58, -19.8, 1.4)), ("LEFT",(-58, -13, 1.4)), ("RIGHT", (-64.7, -20, 1.4))], [])
-#         self.nodes.append((-64.7, -20, 1.4), [("AHEAD", (-58, -13, 1.4)), ("LEFT",(-65, -13, 1.4)), ("RIGHT", (-58, -19.8, 1.4))], [])
-#         self.nodes.append((-25, 24.7, 1.4), [("AHEAD",(-19.7, 19.4, 1.4)), ("RIGHT", (-25, 19.3, 1.4))], [])
-#         self.nodes.append((-19.7, 19.4, 1.4), [("AHEAD",(-25, 24.7, 1.4)), ("LEFT", (-25, 19.3, 1.4))], [(-3.8, 3.5, 1.4)])
-#         self.nodes.append((-25, 19.3, 1.4), [("LEFT",(-25, 24.7, 1.4)), ("RIGHT", (-19.7, 19.4, 1.4))], [(-58, -13, 1.4)])
-#         self.nodes.append((-3.8, 3.5, 1.4), [("AHEAD",(3.9, -3.8, 1.4)), ("LEFT",(3.2, 2.1, 1.4)), ("RIGHT", (-2.8, -3.5, 1.4))], [(-19.7, 19.4, 1.4)])
-#         self.nodes.append((3.2, 2.1, 1.4), [("AHEAD", (-2.8, -3.5, 1.4)) ("LEFT",(3.9, -3.8, 1.4)), ("RIGHT", (-3.8, 3.5, 1.4))], [])
-#         self.nodes.append((3.9, -3.8, 1.4), [("AHEAD",(-3.8, 3.5, 1.4)), ("LEFT",(-2.8, -3.5, 1.4)), ("RIGHT", (3.2, 2.1, 1.4))], [])
-#         self.nodes.append((-2.8, -3.5, 1.4), [("AHEAD",(3.2, 2.1, 1.4)), ("LEFT",(-3.8, 3.5, 1.4)), ("RIGHT", (3.9, -3.8, 1.4))], [(-35.3, -35, 1.4)])
-
-
-#         self.newHead(currentPos)
-
-#     # find the closest main node and set it as the current node
-#     def newHead(self, currPos):
-#         smallesDist = None
-#         for i in self.intersections:
-#             dist = self.distance(i.position, currPos)
-#             if self.currNode is None or smallesDist is None:
-#                 smallesDist = dist
-#                 self.currNode = i
-#             elif dist < smallesDist:
-#                 smallesDist = dist
-#                 self.currNode = i
 
 
 # calcualte the manhattan distance between two coordinates
@@ -851,6 +810,21 @@ path = navigate(graph, ROUTE)
 
 
 while driver.step() != -1:
+
+
+    if all(s is not None for s in [camera, compass, gps, front_bumper_camera, inertial_unit, lidar]):
+        camera.enable(timestep)
+        W = camera.getWidth()
+        H = camera.getHeight()
+        MAX_AREA = (W * H) * 0.4
+        compass.enable(timestep)
+        gps.enable(timestep)
+        front_bumper_camera.enable(timestep)
+        inertial_unit.enable(timestep)
+        lidar.enable(timestep)
+        lidar.enablePointCloud()
+    else:
+        STATE = "ERROR"
 
     if MODE == "CITY_MODE":
         normal_speed = 20
