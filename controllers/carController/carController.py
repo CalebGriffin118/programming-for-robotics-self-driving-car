@@ -33,11 +33,9 @@ normal_drive_steps = 0
 rain_speed = 8.0
 
 route_idx = 0
-ROUTE = [(-22, 22, 1.4), (-38.3, -38.4, 1.4)]
+ROUTE = [(-19.7, 19.4,  1.4), (-42,   -42.8, 1.4)]
 
 min_car_distance = 2.5
-mainIntersctions = [(-61.6, -16.5, 1.4), (-38.3, -38.4, 1.4 ), (0, 0, 1.4), (-22, 22, 1.4)]
-intersections = [(-33.5, -33.5, 1.4), (-43, -43, 1.4), (-43, -33, 1.4), (-4.4, -4.4, 1.4), (4.4, 4.4, 1.4), (4.4, -24.7, 1.4), (-4.9, 4.4, 1.4), (-17.5, 18, 1.4), (-26, 26, 1.4), (-26.5, 18, 1.4), (-56, -11, 1.4), (-64, -20, 1.4), (-57.8, -19, 1.4), (-65, -13, 1.4)]
 STATE = "DRIVING"
 
 alpha = 0.2
@@ -104,70 +102,108 @@ def get_heading():
     yaw = rpy[2]  # yaw is index 2
     return (yaw + 2 * math.pi) % (2 * math.pi)
 
-# main node for navigation one for each intersection
-class MainNode():
-    def __init__(self, pos, avaliable):
-        self.position = pos
-        self.neighbours = []
-        self.children = []
-        self.avaliable = avaliable
+# a class for each node the car can move to 
+class Node():
+    def __init__(self, pos, turns, connections):
+        """
+        pos         - (x, y, z) position
+        turns       - list of ("DIRECTION", (x, y, z)) for turns at this node
+        connections - list of (x, y, z) positions this node connects to (for a*)
+        """
+        self.position    = pos
+        self.turns       = turns        # [("LEFT", pos), ("RIGHT", pos), ("AHEAD", pos)]
+        self.connections = connections  # neighbour positions for a* pathfinding
+        self.neighbours  = []           # filled in by Graph2.build_neighbours()
+        self.available   = True
 
-# subnodes are children of main nodes they are all possible turns that can be done at an interscetion
-class SubNode():
-    def __init__(self, pos, avaliable):
-        self.position = pos
-        self.avaliable = avaliable
+    def getDirection(self, next_pos):
+        """Return the pre-defined turn direction towards next_pos."""
+        for direction, pos in self.turns:
+            if pos == next_pos:
+                return direction
+        return "AHEAD"  # fallback
 
-# a graph representing all the intersections
-class Graph():
+
+class Graph2():
     def __init__(self, currentPos):
-        self.intersections = []
+        self.nodes   = []
         self.currNode = None
-        # create each main node (an intersection)
-        for i in mainIntersctions:
-            newMainNode = MainNode(i, True)
-            self.add_children(newMainNode)
-            self.intersections.append(newMainNode)
 
-        # set the current head to the closes main node
+        raw = [
+            ((-42,   -42.8, 1.4), [("AHEAD", (-35.3, -35,   1.4)), ("LEFT",  (-43,   -35.7, 1.4))], [(-35.3, -35, 1.4), (-43, -35.7, 1.4)]),
+            ((-35.3, -35,   1.4), [("AHEAD", (-42,   -42.8, 1.4)), ("RIGHT", (-43,   -35.7, 1.4))], [(-42, -42.8, 1.4), (-43, -35.7, 1.4), (-2.8, -3.5, 1.4)]),
+            ((-43,   -35.7, 1.4), [("LEFT",  (-35.3, -35,   1.4)), ("RIGHT", (-42,   -42.8, 1.4))], [(-35.3, -35, 1.4), (-42, -42.8, 1.4), (-58, -19.8, 1.4)]),
+            ((-58,   -13,   1.4), [("AHEAD", (-64.7, -20,   1.4)), ("LEFT",  (-58,   -19.8, 1.4)), ("RIGHT", (-65,   -13,   1.4))], [(-64.7, -20, 1.4), (-58, -19.8, 1.4), (-65, -13, 1.4), (-25, 19.3, 1.4)]),
+            ((-58,   -19.8, 1.4), [("AHEAD", (-65,   -13,   1.4)), ("LEFT",  (-64.7, -20,   1.4)), ("RIGHT", (-58,   -13,   1.4))], [(-65, -13, 1.4), (-64.7, -20, 1.4), (-58, -13, 1.4), (-43, -35.7, 1.4)]),
+            ((-65,   -13,   1.4), [("AHEAD", (-58,   -19.8, 1.4)), ("LEFT",  (-58,   -13,   1.4)), ("RIGHT", (-64.7, -20,   1.4))], [(-58, -19.8, 1.4), (-58, -13, 1.4), (-64.7, -20, 1.4)]),
+            ((-64.7, -20,   1.4), [("AHEAD", (-58,   -13,   1.4)), ("LEFT",  (-65,   -13,   1.4)), ("RIGHT", (-58,   -19.8, 1.4))], [(-58, -13, 1.4), (-65, -13, 1.4), (-58, -19.8, 1.4)]),
+            ((-25,   24.7,  1.4), [("AHEAD", (-19.7, 19.4,  1.4)), ("RIGHT", (-25,   19.3,  1.4))], [(-19.7, 19.4, 1.4), (-25, 19.3, 1.4)]),
+            ((-19.7, 19.4,  1.4), [("AHEAD", (-25,   24.7,  1.4)), ("LEFT",  (-25,   19.3,  1.4))], [(-25, 24.7, 1.4), (-25, 19.3, 1.4), (-3.8, 3.5, 1.4)]),
+            ((-25,   19.3,  1.4), [("LEFT",  (-25,   24.7,  1.4)), ("RIGHT", (-19.7, 19.4,  1.4))], [(-25, 24.7, 1.4), (-19.7, 19.4, 1.4), (-58, -13, 1.4)]),
+            ((-3.8,  3.5,   1.4), [("AHEAD", (3.9,   -3.8,  1.4)), ("LEFT",  (3.2,   2.1,   1.4)), ("RIGHT", (-2.8,  -3.5,  1.4))], [(3.9, -3.8, 1.4), (3.2, 2.1, 1.4), (-2.8, -3.5, 1.4), (-19.7, 19.4, 1.4)]),
+            ((3.2,   2.1,   1.4), [("AHEAD", (-2.8,  -3.5,  1.4)), ("LEFT",  (3.9,   -3.8,  1.4)), ("RIGHT", (-3.8,  3.5,   1.4))], [(-2.8, -3.5, 1.4), (3.9, -3.8, 1.4), (-3.8, 3.5, 1.4)]),
+            ((3.9,   -3.8,  1.4), [("AHEAD", (-3.8,  3.5,   1.4)), ("LEFT",  (-2.8,  -3.5,  1.4)), ("RIGHT", (3.2,   2.1,   1.4))], [(-3.8, 3.5, 1.4), (-2.8, -3.5, 1.4), (3.2, 2.1, 1.4)]),
+            ((-2.8,  -3.5,  1.4), [("AHEAD", (3.2,   2.1,   1.4)), ("LEFT",  (-3.8,  3.5,   1.4)), ("RIGHT", (3.9,   -3.8,  1.4))], [(3.2, 2.1, 1.4), (-3.8, 3.5, 1.4), (3.9, -3.8, 1.4), (-35.3, -35, 1.4)]),
+        ]
+
+        for pos, turns, connections in raw:
+            self.nodes.append(Node(pos, turns, connections))
+
+        self.build_neighbours()
         self.newHead(currentPos)
 
-        # add neighbours to each main node (accessable intersections form each other)
-        self.intersections[0].neighbours.append(self.intersections[1])
-        self.intersections[0].neighbours.append(self.intersections[3])
-        self.intersections[1].neighbours.append(self.intersections[0])
-        self.intersections[1].neighbours.append(self.intersections[2])
-        self.intersections[2].neighbours.append(self.intersections[1])
-        self.intersections[2].neighbours.append(self.intersections[3])
-        self.intersections[3].neighbours.append(self.intersections[2])
-        self.intersections[3].neighbours.append(self.intersections[0])
+    def build_neighbours(self):
+        """Link each node to its neighbour Node objects using connection positions."""
+        pos_to_node = {n.position: n for n in self.nodes}
+        for node in self.nodes:
+            for conn_pos in node.connections:
+                neighbour = pos_to_node.get(conn_pos)
+                if neighbour:
+                    node.neighbours.append(neighbour)
 
-    # add all possible turns at an intersection as a child node (SubNode)
-    def add_children(self, currNode):
-        for i in intersections:
-            dist = self.distance(currNode.position, i)
-            if 0 < dist < 15:
-                currNode.children.append(SubNode(i, True))
+    def distance(self, a, b):
+        return sum(abs(x - y) for x, y in zip(a, b))
 
-    # calculate the distance between two points
-    def distance(self, currentPos, newPos):
-        pairs = zip(currentPos, newPos)
-        sum = 0
-        for i in pairs:
-            sum += abs(i[0] - i[1])
-        return sum
-
-    # find the closest main node and set it as the current node
     def newHead(self, currPos):
-        smallesDist = None
-        for i in self.intersections:
-            dist = self.distance(i.position, currPos)
-            if self.currNode is None or smallesDist is None:
-                smallesDist = dist
-                self.currNode = i
-            elif dist < smallesDist:
-                smallesDist = dist
-                self.currNode = i
+        self.currNode = min(self.nodes, key=lambda n: self.distance(n.position, currPos))
+
+
+
+# a graph representing all the intersections
+# class Graph2():
+#     def __init__(self, currentPos):
+#         self.nodes = []
+#         self.currNode = None
+#         # create each node
+#         self.nodes.append((-42, -42.8, 1.4), [("AHEAD", (-35.3, -35, 1.4)), ("LEFT", (-43, -35.7, 1.4))], [])
+#         self.nodes.append((-35.3, -35, 1.4), [("AHEAD", (-42, -42.8, 1.4)), ("RIGHT", (-43, -35.7, 1.4))], [(-2.8, -3.5, 1.4)])
+#         self.nodes.append((-43, -35.7, 1.4), [("LEFT", (-35.3, -35, 1.4)), ("RIGHT", (-42, -42.8, 1.4))], [(-58, -19.8, 1.4)])
+#         self.nodes.append((-58, -13, 1.4), [("AHEAD", (-64.7, -20, 1.4)), ("LEFT", (-58, -19.8, 1.4)), ((-65, -13, 1.4), "RIGHT")], [(-25, 19.3, 1.4)])
+#         self.nodes.append((-58, -19.8, 1.4), [("AHEAD", (-65, -13, 1.4)), ("LEFT", (-64.7, -20, 1.4)), ("RIGHT", (-58, -13, 1.4))], [(-43, -35.7, 1.4)])
+#         self.nodes.append((-65, -13, 1.4), [("AHEAD",(-58, -19.8, 1.4)), ("LEFT",(-58, -13, 1.4)), ("RIGHT", (-64.7, -20, 1.4))], [])
+#         self.nodes.append((-64.7, -20, 1.4), [("AHEAD", (-58, -13, 1.4)), ("LEFT",(-65, -13, 1.4)), ("RIGHT", (-58, -19.8, 1.4))], [])
+#         self.nodes.append((-25, 24.7, 1.4), [("AHEAD",(-19.7, 19.4, 1.4)), ("RIGHT", (-25, 19.3, 1.4))], [])
+#         self.nodes.append((-19.7, 19.4, 1.4), [("AHEAD",(-25, 24.7, 1.4)), ("LEFT", (-25, 19.3, 1.4))], [(-3.8, 3.5, 1.4)])
+#         self.nodes.append((-25, 19.3, 1.4), [("LEFT",(-25, 24.7, 1.4)), ("RIGHT", (-19.7, 19.4, 1.4))], [(-58, -13, 1.4)])
+#         self.nodes.append((-3.8, 3.5, 1.4), [("AHEAD",(3.9, -3.8, 1.4)), ("LEFT",(3.2, 2.1, 1.4)), ("RIGHT", (-2.8, -3.5, 1.4))], [(-19.7, 19.4, 1.4)])
+#         self.nodes.append((3.2, 2.1, 1.4), [("AHEAD", (-2.8, -3.5, 1.4)) ("LEFT",(3.9, -3.8, 1.4)), ("RIGHT", (-3.8, 3.5, 1.4))], [])
+#         self.nodes.append((3.9, -3.8, 1.4), [("AHEAD",(-3.8, 3.5, 1.4)), ("LEFT",(-2.8, -3.5, 1.4)), ("RIGHT", (3.2, 2.1, 1.4))], [])
+#         self.nodes.append((-2.8, -3.5, 1.4), [("AHEAD",(3.2, 2.1, 1.4)), ("LEFT",(-3.8, 3.5, 1.4)), ("RIGHT", (3.9, -3.8, 1.4))], [(-35.3, -35, 1.4)])
+
+
+#         self.newHead(currentPos)
+
+#     # find the closest main node and set it as the current node
+#     def newHead(self, currPos):
+#         smallesDist = None
+#         for i in self.intersections:
+#             dist = self.distance(i.position, currPos)
+#             if self.currNode is None or smallesDist is None:
+#                 smallesDist = dist
+#                 self.currNode = i
+#             elif dist < smallesDist:
+#                 smallesDist = dist
+#                 self.currNode = i
 
 
 # calcualte the manhattan distance between two coordinates
@@ -179,7 +215,7 @@ def manhattan_distance(a, b):
     return distance
 
 # use the a* heuristic to find a quick path between two nodes in the graph
-# @returns list of MainNode and SubNode objects
+# @returns list of Node objects
 def a_star(startNode, goalNode):
     counter = itertools.count()
     priorityQueue = []
@@ -212,29 +248,13 @@ def a_star(startNode, goalNode):
 
 # get the coordnate positions of a list of nodes
 # @return a list of 3D coordnates
-def get_coords(node_path):
-    path = []
-    for idx in range(len(node_path) - 1):
-        path.append(node_path[idx])
-        min_dist = None
-        min_node = None
-        # for each main node check if there is a subnode within a close distance
-        for sub_node in node_path[idx].children:
-            dist = manhattan_distance(node_path[idx + 1].position, sub_node.position)
-            # if there is set it as a child
-            if min_dist is None or dist < min_dist:
-                min_dist = dist
-                min_node = sub_node
-        path.append(min_node)
-    path.append(node_path[-1])
-    return path
-
-# convert the output of the a* algorithm (a list of node objects) to a list of coordnates with correct SubNods/turns
-# @return value a list of 3D coordinates
 def navigate(graph, target_pos):
-    node_path = a_star(graph.currNode, target_pos)
-    coord_path = get_coords(node_path)
-    return coord_path
+    path = a_star(graph.currNode, target_pos)
+    if path is None:
+        print(f"ERROR: No path found to {target_pos}")
+        return []
+    print([n.position for n in path])
+    return path
 
 
 # turn the car depending on the direction
@@ -260,7 +280,7 @@ def stopCarLIDAR():
     driver.setSteeringAngle(0)
     driver.setCruisingSpeed(0.0)
     driver.setBrakeIntensity(0.8)
-    print(f"LIDAR OBSTACLE DETECTED!")
+    # print(f"LIDAR OBSTACLE DETECTED!")
 
 # make the car turn left or right and return its current state, the current node, and the cars heading
 # @return STATE, path_idx, heading
@@ -277,7 +297,7 @@ def turning(direction, start_heading, path_idx, turn_angle=math.pi / 2):
         turned = turnCar(direction, heading_rad, start_heading)
         # if we are going stright we do not need to turn anymore
         if turned is None:
-            return "DRIVING", path_idx + 1, heading_rad
+            return "DRIVING", path_idx, heading_rad
         
         driver.setCruisingSpeed(5)
 
@@ -287,7 +307,7 @@ def turning(direction, start_heading, path_idx, turn_angle=math.pi / 2):
 
         turn_remaining = turn_angle - turned
 
-        print(f"Start: {start_heading:.3f} | Current: {heading_rad:.3f} | Turned: {turned:.3f} | Remaining: {turn_remaining:.3f}")
+        # print(f"Start: {start_heading:.3f} | Current: {heading_rad:.3f} | Turned: {turned:.3f} | Remaining: {turn_remaining:.3f}")
 
         if turn_remaining < 0.08:
             driver.setSteeringAngle(0)
@@ -297,63 +317,33 @@ def turning(direction, start_heading, path_idx, turn_angle=math.pi / 2):
         else:
             return "TURNING", path_idx, heading_rad
 
-# get the direct (left, right, ahead) between two coordinates
-# @return AHEAD or RIGHT or LEFT
-def getDirection(robot_pos, target_pos):
-    north = compass.getValues()
-    heading_rad = math.atan2(north[0], north[2])
-    heading_rad = (heading_rad + 2 * math.pi) % (2 * math.pi)
-
-    fx = math.sin(heading_rad)
-    fz = math.cos(heading_rad)
-
-    dx = target_pos.position[0] - robot_pos.position[0]
-    dz = target_pos.position[2] - robot_pos.position[2]
-
-    cross = fx * dz - fz * dx
-    if abs(cross) < 0.029:
-        return "AHEAD"
-    elif cross > 0:
-        return "RIGHT"
-    else:
-        return "LEFT"
-
 # drive the car foward
 # @return path_idx, STATE, heading
 def drive(gps_pos, path_idx, path, STATE, drive_speed):
     dist = manhattan_distance(gps_pos, path[path_idx].position)
-    print(f"Dist: {dist}")
-    front_distance  = lidarDetect(lidar)
+
+    front_distance = lidarDetect(lidar)
     obstacle_detected = front_distance < getDynamicMinDistance(driver.getCurrentSpeed())
 
-    # Lidar safety override
     if obstacle_detected:
         stopCarLIDAR()
-    else:
-        rain_active = detectRain(obstacle_detected)
-
-        if rain_active:
-            print("RAIN MODE ON")
-            rain_mult = 0.7
-        else:
-            print("RAIN MODE OFF")
-            rain_mult = 1
-
-        # if we have arrived at the node move to the next one
-        if isinstance(path[path_idx], MainNode) and dist < 8:
-            path_idx += 1
-
-        if path_idx >= len(path):
-            return path_idx, "ARRIVED", get_heading()
-
-        # we only turn at subnodes so set the state to turning if we are at one
-        if isinstance(path[path_idx], SubNode):
-            STATE = "TURNING"
-        elif isinstance(path[path_idx], MainNode):
-            driver.setCruisingSpeed(drive_speed* rain_mult)
-            STATE = "DRIVING"
-
         return path_idx, STATE, get_heading()
+
+    rain_mult = 0.7 if detectRain(obstacle_detected) else 1.0
+
+    if dist < 8:
+        path_idx += 1
+
+    if path_idx >= len(path):
+        return path_idx, "ARRIVED", get_heading()
+
+    if path[path_idx].turns:
+        STATE = "TURNING"
+    else:
+        driver.setCruisingSpeed(drive_speed * rain_mult)
+        STATE = "DRIVING"
+
+    return path_idx, STATE, get_heading()
 
 
 
@@ -374,7 +364,7 @@ def lidarDetect(lidar_sensor):
     if not valid_distances:
         return float('inf')
     min_dist = min(valid_distances)
-    print(f"LiDAR -> closest front obstacle: {min_dist:.2f}")
+    # print(f"LiDAR -> closest front obstacle: {min_dist:.2f}")
     return min_dist
 
 
@@ -391,7 +381,7 @@ def detectRedScore(hsv):
     detection  = np.sum(roi > 0) / roi.size
     red_score  = alpha * detection + (1 - alpha) * red_score
  
-    print("RED SCORE:", red_score)
+    # print("RED SCORE:", red_score)
     return mask
 
 
@@ -574,7 +564,7 @@ def getLineCandidates(lane_mask):
             continue
         candidates.append(int(moments["m10"] / moments["m00"]))
 
-    print(f"Lane candidates: {candidates}")
+    # print(f"Lane candidates: {candidates}")
     return candidates
 
 # smooth the line out to reduce noise
@@ -593,12 +583,12 @@ def updateLaneMode(line_x):
     if line_x < LANE_TOO_CLOSE:
         lane_correction_mode   = "MOVE_LEFT"
         previous_lane_steering = 0.0
-        print("Drifting towards right boundary -> Starting LEFT correction")
+        # print("Drifting towards right boundary -> Starting LEFT correction")
 
     elif line_x > LANE_TOO_FAR:
         lane_correction_mode   = "MOVE_RIGHT"
         previous_lane_steering = 0.0
-        print("Drifting away from right boundary -> Starting RIGHT correction")
+        # print("Drifting away from right boundary -> Starting RIGHT correction")
 
 # calculates how much the car needs to turn left
 # @return how much to steer the car left 
@@ -608,7 +598,7 @@ def computeLeftSteering(line_x):
     if line_x >= LANE_ACCEPTABLE_LEFT:
         lane_correction_mode   = "NONE"
         previous_lane_steering = 0.0
-        print(f"LEFT correction complete | LineX={line_x} | Steering=0")
+        # print(f"LEFT correction complete | LineX={line_x} | Steering=0")
         return 0.0
 
     speed       = abs(driver.getCurrentSpeed())
@@ -626,8 +616,8 @@ def computeLeftSteering(line_x):
     steering = max(max_steering, min(0.0, 0.25 * previous_lane_steering + 0.75 * raw))
 
     previous_lane_steering = steering
-    print(f"LEFT correction active | LineX={line_x} | FinishAt={LANE_ACCEPTABLE_LEFT} "
-          f"| Speed={speed:.1f} | Steering={steering:.3f}")
+    # print(f"LEFT correction active | LineX={line_x} | FinishAt={LANE_ACCEPTABLE_LEFT} "
+    #       f"| Speed={speed:.1f} | Steering={steering:.3f}")
     return steering
 
 # calculates how much the car needs to turn right
@@ -638,13 +628,13 @@ def computeRightSteering(line_x):
     if line_x < LANE_TOO_CLOSE:
         lane_correction_mode   = "MOVE_LEFT"
         previous_lane_steering = 0.0
-        print("RIGHT correction aborted -> Switching to LEFT correction")
+        # print("RIGHT correction aborted -> Switching to LEFT correction")
         return -0.03
 
     if line_x <= LANE_ACCEPTABLE_RIGHT:
         lane_correction_mode   = "NONE"
         previous_lane_steering = 0.0
-        print(f"RIGHT correction complete | LineX={line_x} | Steering=0")
+        # print(f"RIGHT correction complete | LineX={line_x} | Steering=0")
         return 0.0
 
     speed  = abs(driver.getCurrentSpeed())
@@ -654,8 +644,8 @@ def computeRightSteering(line_x):
     steering = max(0.0, min(0.060, 0.40 * previous_lane_steering + 0.60 * raw))
 
     previous_lane_steering = steering
-    print(f"RIGHT correction active | LineX={line_x} | FinishAt={LANE_ACCEPTABLE_RIGHT} "
-          f"| Speed={speed:.1f} | Steering={steering:.3f}")
+    # print(f"RIGHT correction active | LineX={line_x} | FinishAt={LANE_ACCEPTABLE_RIGHT} "
+    #       f"| Speed={speed:.1f} | Steering={steering:.3f}")
     return steering
 
 # keeps the car within its current lane
@@ -670,7 +660,7 @@ def laneDetect():
         previous_lane_steering *= 0.30
         if abs(previous_lane_steering) < 0.003:
             previous_lane_steering = 0.0
-        print(f"No right boundary visible | Mode={lane_correction_mode} | Steering={previous_lane_steering:.3f}")
+        # print(f"No right boundary visible | Mode={lane_correction_mode} | Steering={previous_lane_steering:.3f}")
         return previous_lane_steering
 
     line_x = smoothLineX(max(candidates), previous_line_x)
@@ -688,7 +678,7 @@ def laneDetect():
     previous_lane_steering *= 0.25
     if abs(previous_lane_steering) < 0.003:
         previous_lane_steering = 0.0
-    print(f"Lane safe | LineX={line_x:.1f} | Target={LANE_TARGET_X} | Steering={previous_lane_steering:.3f}")
+    # print(f"Lane safe | LineX={line_x:.1f} | Target={LANE_TARGET_X} | Steering={previous_lane_steering:.3f}")
     return previous_lane_steering
 
 # detect if the weather condition is raining
@@ -720,7 +710,7 @@ def detectRain(obstacle_detected):
         rain_mode = False
         recheck_timer = 0.0
         slip_timer = 0.0
-        print("Rechecking traction... temporarily leaving rain mode")
+        # print("Rechecking traction... temporarily leaving rain mode")
         return False
 
     # Only detect slip when we are trying to accelerate
@@ -728,10 +718,10 @@ def detectRain(obstacle_detected):
 
     if trying_to_accelerate and acceleration < minimum_expected_acceleration:
         slip_timer += delta_time
-        print(
-            f"Possible slip | speed={actual_speed:.1f} km/h | "
-            f"accel={acceleration:.2f} | slip_timer={slip_timer:.2f}s"
-        )
+        # print(
+        #     f"Possible slip | speed={actual_speed:.1f} km/h | "
+        #     f"accel={acceleration:.2f} | slip_timer={slip_timer:.2f}s"
+        # )
     else:
         slip_timer = 0.0
 
@@ -740,7 +730,7 @@ def detectRain(obstacle_detected):
         rain_mode = True
         recheck_timer = 0.0
         slip_timer = 0.0
-        print("Rain / low traction detected. Switching to rain mode.")
+        # print("Rain / low traction detected. Switching to rain mode.")
         return True
 
     return False
@@ -757,7 +747,7 @@ def getDynamicMinDistance(current_speed):
     else:
        return 2.5
 
-graph = Graph(gps.getValues())
+graph = Graph2(gps.getValues())
 path = navigate(graph, ROUTE[0])
 
 while driver.step() != -1:
@@ -795,20 +785,20 @@ while driver.step() != -1:
         rain_active = detectRain(obstacle_detected)
 
     if rain_active:
-        print("Rain Mode ON")
+        # print("Rain Mode ON")
         current_drive_speed = rain_speed
     else:
-        print("Rain Mode OFF")
+        # print("Rain Mode OFF")
         current_drive_speed = normal_speed
 
-    if path_idx >= len(path):
+    if path_idx >= len(path) and route_idx >= len(ROUTE):
         STATE = "PARK"
 
     if STATE == "ERROR":
         break
     elif STATE == "TURNING":
         if counter == 0:
-            direction = getDirection(path[path_idx - 1], path[path_idx])
+            direction = path[path_idx].getDirection(path[path_idx + 1].position)
             start_heading = get_heading()
             counter = 1
 
@@ -817,7 +807,6 @@ while driver.step() != -1:
     elif STATE == "DRIVING":
         lane_steering = laneDetect()
         driver.setSteeringAngle(lane_steering)
-
         path_idx, STATE, _ = drive(gps.getValues(), path_idx, path, STATE, normal_speed)
         counter = 0
 
@@ -826,14 +815,23 @@ while driver.step() != -1:
         driver.setCruisingSpeed(0)
 
     elif STATE == "ARRIVED":
+        driver.setSteeringAngle(0)
+        driver.setCruisingSpeed(0)
         route_idx += 1
-        graph.newHead(gps.getValues())
-        path = navigate(graph, ROUTE[route_idx])
-        print(path)
-        STATE = "DRIVING"
-        path_idx = 0
-        counter = 0
-
-    print(f"Direction: {direction}, State: {STATE}, path_idx: {path_idx}")
-    print("________________________________")
+        if route_idx < len(ROUTE):
+            
+            graph.newHead(gps.getValues())
+            path = navigate(graph, ROUTE[route_idx])
+            STATE = "DRIVING"
+            path_idx = 0
+            counter = 0
+        else:
+            STATE = "PARK"
+    # temp = []
+    # for i in path:
+    #     temp.append(i.position)
+    # print(temp)
+    # print(f"Direction: {direction}, State: {STATE}, path_idx: {path_idx}")
+    # print(f"GPS: {path_idx}")
+    # print("________________________________")
 
