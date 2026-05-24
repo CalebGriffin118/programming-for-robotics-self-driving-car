@@ -280,6 +280,7 @@ def turnCar(direction, heading_rad, start_heading):
         turned = (heading_rad - start_heading) % (2 * math.pi)
     return turned
 
+
 # stops the car from moving and prints the current speed
 # @return void/nothing
 def stopCarLIDAR(): 
@@ -812,19 +813,8 @@ path = navigate(graph, ROUTE)
 while driver.step() != -1:
 
 
-    if all(s is not None for s in [camera, compass, gps, front_bumper_camera, inertial_unit, lidar]):
-        camera.enable(timestep)
-        W = camera.getWidth()
-        H = camera.getHeight()
-        MAX_AREA = (W * H) * 0.4
-        compass.enable(timestep)
-        gps.enable(timestep)
-        front_bumper_camera.enable(timestep)
-        inertial_unit.enable(timestep)
-        lidar.enable(timestep)
-        lidar.enablePointCloud()
-    else:
-        STATE = "ERROR"
+    if all(s is None for s in [camera, compass, gps, front_bumper_camera, inertial_unit, lidar]):
+        STATE = "ERROR"        
 
     if MODE == "CITY_MODE":
         normal_speed = 20
