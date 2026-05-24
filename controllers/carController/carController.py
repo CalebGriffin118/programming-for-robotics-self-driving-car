@@ -62,16 +62,6 @@ inertial_unit = driver.getDevice("car_inertial_unit")
 inertial_unit.enable(timestep)
 
 
-lane_correction_mode = "NONE"
-LANE_TARGET_X         = 265
-LANE_ACCEPTABLE_LEFT  = 258
-LANE_ACCEPTABLE_RIGHT = 278
-LANE_TOO_CLOSE        = 250
-LANE_TOO_FAR          = 288
-LANE_X_ALPHA          = 0.40
-previous_line_x = float(LANE_TARGET_X)
-
-
 
 if lidar is None:
     print("Lidar sensor not found")
@@ -240,7 +230,7 @@ def stopCarLIDAR():
     driver.setSteeringAngle(0)
     driver.setCruisingSpeed(0.0)
     driver.setBrakeIntensity(0.8)
-    print(f"LIDAR OBSTACLE DETECTED!")
+    # print(f"LIDAR OBSTACLE DETECTED!")
 
 # make the car turn left or right and return its current state, the current node, and the cars heading
 # @return STATE, path_idx, heading
@@ -267,7 +257,7 @@ def turning(direction, start_heading, path_idx, turn_angle=math.pi / 2):
 
         turn_remaining = turn_angle - turned
 
-        print(f"Start: {start_heading:.3f} | Current: {heading_rad:.3f} | Turned: {turned:.3f} | Remaining: {turn_remaining:.3f}")
+        # print(f"Start: {start_heading:.3f} | Current: {heading_rad:.3f} | Turned: {turned:.3f} | Remaining: {turn_remaining:.3f}")
 
         if turn_remaining < 0.08:
             driver.setSteeringAngle(0)
@@ -303,7 +293,7 @@ def getDirection(robot_pos, target_pos):
 # @return path_idx, STATE, heading
 def drive(gps_pos, path_idx, path, STATE, drive_speed):
     dist = manhattan_distance(gps_pos, path[path_idx].position)
-    print(f"Dist: {dist}")
+    # print(f"Dist: {dist}")
     front_distance  = lidarDetect(lidar)
     obstacle_detected = front_distance < getDynamicMinDistance(driver.getCurrentSpeed())
 
@@ -359,7 +349,7 @@ def lidarDetect(lidar_sensor):
     if not valid_distances:
         return float('inf')
     min_dist = min(valid_distances)
-    print(f"LiDAR -> closest front obstacle: {min_dist:.2f}")
+    # print(f"LiDAR -> closest front obstacle: {min_dist:.2f}")
     return min_dist
 
 
@@ -376,7 +366,7 @@ def detectRedScore(hsv):
     detection  = np.sum(roi > 0) / roi.size
     red_score  = alpha * detection + (1 - alpha) * red_score
  
-    print("RED SCORE:", red_score)
+    # print("RED SCORE:", red_score)
     return mask
 
 
@@ -517,6 +507,14 @@ def cameraDetect(rgb, hsv):
         return "GIVE_WAY"
     return "DRIVE"
 
+lane_correction_mode = "NONE"
+LANE_TARGET_X         = 265
+LANE_ACCEPTABLE_LEFT  = 263
+LANE_ACCEPTABLE_RIGHT = 268
+LANE_TOO_CLOSE        = 262
+LANE_TOO_FAR          = 269
+LANE_X_ALPHA          = 0.50
+previous_line_x = float(LANE_TARGET_X)
 # gets the mask for the white lines the camera
 # @retuns numpy array
 def getLaneMask():
@@ -567,6 +565,16 @@ def getLineCandidates(lane_mask):
 def smoothLineX(raw_x, previous_x):
     return LANE_X_ALPHA * raw_x + (1 - LANE_X_ALPHA) * previous_x
 
+# selects the lane line that is closest to the line we were already tracking
+# this prevents the car jumping onto unrelated white lines
+# @return x position of the selected lane line
+def selectTrackedLine(candidates):
+    global previous_line_x
+
+    selected_x = min(candidates, key=lambda x: abs(x - previous_line_x))
+    print(f"Selected lane line: {selected_x} | Previous tracked: {previous_line_x:.1f}")
+    return selected_x
+
 # updates the correction if needed
 # @retuns MOVE_LEFT or MOVE_RIGHT
 def updateLaneMode(line_x):
@@ -615,8 +623,9 @@ def computeLeftSteering(line_x):
           f"| Speed={speed:.1f} | Steering={steering:.3f}")
     return steering
 
+
 # calculates how much the car needs to turn right
-# @return how much to steer the car right 
+# @return how much to steer the car right
 def computeRightSteering(line_x):
     global lane_correction_mode, previous_lane_steering
 
@@ -626,20 +635,23 @@ def computeRightSteering(line_x):
         print("RIGHT correction aborted -> Switching to LEFT correction")
         return -0.03
 
+    # Right correction is complete once the right boundary has returned
+    # to the acceptable area.
     if line_x <= LANE_ACCEPTABLE_RIGHT:
         lane_correction_mode   = "NONE"
         previous_lane_steering = 0.0
-        print(f"RIGHT correction complete | LineX={line_x} | Steering=0")
+        print(f"RIGHT correction complete | LineX={line_x:.1f} | Steering=0")
         return 0.0
 
-    speed  = abs(driver.getCurrentSpeed())
-    sf     = max(0.50, min(speed / 30.0, 1.0))
-    error  = line_x - LANE_ACCEPTABLE_RIGHT
-    raw    = min(0.060, (0.015 + error * 0.0015) * sf)
+    speed = abs(driver.getCurrentSpeed())
+    sf    = max(0.50, min(speed / 30.0, 1.0))
+    error = line_x - LANE_ACCEPTABLE_RIGHT
+
+    raw      = min(0.060, (0.015 + error * 0.0015) * sf)
     steering = max(0.0, min(0.060, 0.40 * previous_lane_steering + 0.60 * raw))
 
     previous_lane_steering = steering
-    print(f"RIGHT correction active | LineX={line_x} | FinishAt={LANE_ACCEPTABLE_RIGHT} "
+    print(f"RIGHT correction active | LineX={line_x:.1f} | FinishAt={LANE_ACCEPTABLE_RIGHT} "
           f"| Speed={speed:.1f} | Steering={steering:.3f}")
     return steering
 
@@ -653,12 +665,16 @@ def laneDetect():
 
     if not candidates:
         previous_lane_steering *= 0.30
+
         if abs(previous_lane_steering) < 0.003:
             previous_lane_steering = 0.0
-        print(f"No right boundary visible | Mode={lane_correction_mode} | Steering={previous_lane_steering:.3f}")
+
+        print(f"No right boundary visible | Mode={lane_correction_mode} "
+              f"| Steering={previous_lane_steering:.3f}")
         return previous_lane_steering
 
-    line_x = smoothLineX(max(candidates), previous_line_x)
+    raw_line_x = selectTrackedLine(candidates)
+    line_x     = smoothLineX(raw_line_x, previous_line_x)
     previous_line_x = line_x
 
     updateLaneMode(line_x)
@@ -669,11 +685,13 @@ def laneDetect():
     if lane_correction_mode == "MOVE_RIGHT":
         return computeRightSteering(line_x)
 
-    # Safe zone
     previous_lane_steering *= 0.25
+
     if abs(previous_lane_steering) < 0.003:
         previous_lane_steering = 0.0
-    print(f"Lane safe | LineX={line_x:.1f} | Target={LANE_TARGET_X} | Steering={previous_lane_steering:.3f}")
+
+    print(f"Lane safe | LineX={line_x:.1f} | Target={LANE_TARGET_X} "
+          f"| Steering={previous_lane_steering:.3f}")
     return previous_lane_steering
 
 # detect if the weather condition is raining
@@ -705,7 +723,7 @@ def detectRain(obstacle_detected):
         rain_mode = False
         recheck_timer = 0.0
         slip_timer = 0.0
-        print("Rechecking traction... temporarily leaving rain mode")
+        # print("Rechecking traction... temporarily leaving rain mode")
         return False
 
     # Only detect slip when we are trying to accelerate
@@ -713,10 +731,10 @@ def detectRain(obstacle_detected):
 
     if trying_to_accelerate and acceleration < minimum_expected_acceleration:
         slip_timer += delta_time
-        print(
-            f"Possible slip | speed={actual_speed:.1f} km/h | "
-            f"accel={acceleration:.2f} | slip_timer={slip_timer:.2f}s"
-        )
+        # print(
+        #     f"Possible slip | speed={actual_speed:.1f} km/h | "
+        #     f"accel={acceleration:.2f} | slip_timer={slip_timer:.2f}s"
+        # )
     else:
         slip_timer = 0.0
 
@@ -725,7 +743,7 @@ def detectRain(obstacle_detected):
         rain_mode = True
         recheck_timer = 0.0
         slip_timer = 0.0
-        print("Rain / low traction detected. Switching to rain mode.")
+        # print("Rain / low traction detected. Switching to rain mode.")
         return True
 
     return False
@@ -781,10 +799,10 @@ while driver.step() != -1:
         rain_active = detectRain(obstacle_detected)
 
     if rain_active:
-        print("Rain Mode ON")
+        # print("Rain Mode ON")
         current_drive_speed = rain_speed
     else:
-        print("Rain Mode OFF")
+        # print("Rain Mode OFF")
         current_drive_speed = normal_speed
 
     if path_idx >= len(path):
@@ -825,6 +843,6 @@ while driver.step() != -1:
         path_idx = 0
         counter = 0
 
-    print(f"Direction: {direction}, State: {STATE}, path_idx: {path_idx}")
-    print("________________________________")
+    # print(f"Direction: {direction}, State: {STATE}, path_idx: {path_idx}")
+    # print("________________________________")
 

@@ -34,15 +34,15 @@ WorldInfo {
   contactProperties [
     ContactProperties {
       coulombFriction [
-        4
+        7
       ]
       softCFM 1e-05
     }
   ]
 }
 Viewpoint {
-  orientation 0.13891047926504307 0.5658346678833263 -0.8127330480371289 0.8214193633645007
-  position -89.26855761042773 8.094321751055727 19.528351716966384
+  orientation 0.09202623754128283 0.8221141692527296 -0.5618357983591732 0.6802050132014352
+  position -65.29090500080902 -3.469871048879788 0.6104642616522078
 }
 TexturedBackground {
 }
@@ -61,7 +61,7 @@ StraightRoadSegment {
       type "continuous"
     }
   ]
-  length 30
+  length 120
   roadBoundingObject TRUE
 }
 BigGlassTower {
@@ -135,8 +135,8 @@ GenericTrafficLight {
   rotation 0 0 1 2.35619
   name "generic traffic light(2)"
   startGreen FALSE
-  redTime 60
-  state "red"
+  redTime 2
+  state "green"
 }
 GenericTrafficLight {
   translation 0.0667875 -5.46066 -0.09
@@ -202,6 +202,11 @@ StraightRoadSegment {
   translation -41 -36 0.1
   rotation 0 0 1 2.3561956132800117
   name "road(2)"
+  lines [
+    RoadLine {
+      type "continuous"
+    }
+  ]
   length 25
   roadBoundingObject TRUE
 }
