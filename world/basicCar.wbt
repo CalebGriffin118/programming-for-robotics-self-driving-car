@@ -34,15 +34,15 @@ WorldInfo {
   contactProperties [
     ContactProperties {
       coulombFriction [
-        4
+        7
       ]
       softCFM 1e-05
     }
   ]
 }
 Viewpoint {
-  orientation -0.3753297755160157 0.820762614392872 0.4306695838181225 1.5030583479432773
-  position -65.20442398558914 -28.420351311334517 52.3370897858538
+  orientation -0.6579963176465571 0.2752498881540702 0.7009125088302698 2.5021587703458907
+  position -44.3099370199739 -11.579225894221384 152.29233112204744
 }
 TexturedBackground {
 }
@@ -61,7 +61,7 @@ StraightRoadSegment {
       type "continuous"
     }
   ]
-  length 30
+  length 120
   roadBoundingObject TRUE
 }
 BigGlassTower {
@@ -112,6 +112,11 @@ StraightRoadSegment {
   translation 6 6 0.1
   rotation 0 0 1 0.7861523851958112
   name "road(4)"
+  lines [
+    RoadLine {
+      type "continuous"
+    }
+  ]
 }
 Oak {
   translation 15.118 9.44662 -3.78008e-12
@@ -122,6 +127,11 @@ StraightRoadSegment {
   translation 13 13 0.1
   rotation 0 0 1 0.7861523851958112
   name "road(5)"
+  lines [
+    RoadLine {
+      type "continuous"
+    }
+  ]
   length 36
 }
 GenericTrafficLight {
@@ -135,8 +145,8 @@ GenericTrafficLight {
   rotation 0 0 1 2.35619
   name "generic traffic light(2)"
   startGreen FALSE
-  redTime 0
-  state "red"
+  redTime 2
+  state "green"
 }
 GenericTrafficLight {
   translation 0.0667875 -5.46066 -0.09
@@ -190,16 +200,26 @@ StraightRoadSegment {
   translation -41 -41 0.1
   rotation 0 0 1 -2.3561956132800117
   name "road(2)"
+  lines [
+    RoadLine {
+      type "continuous"
+    }
+  ]
   length 31.6
 }
 StraightRoadSegment {
   translation -64 -19 0.1
   rotation 0 0 1 -2.3561956132800117
   name "road(2)"
+  lines [
+    RoadLine {
+      type "continuous"
+    }
+  ]
   length 30
 }
 StraightRoadSegment {
-  translation -41.5 -36.5 0.1
+  translation -41 -36 0.1
   rotation 0 0 1 2.3561956132800117
   name "road(2)"
   lines [
@@ -211,7 +231,7 @@ StraightRoadSegment {
   roadBoundingObject TRUE
 }
 StopSign {
-  translation -61.6773 -21.9127 0.27
+  translation -61.1235 -21.3589 0.27
   rotation 2.31516e-08 -9.58979e-09 1 -0.7854053071795866
 }
 StopSign {
@@ -232,6 +252,11 @@ StraightRoadSegment {
   translation 6 -6 0.1
   rotation 0 0 1 -0.7854003061004253
   name "road(2)"
+  lines [
+    RoadLine {
+      type "continuous"
+    }
+  ]
 }
 CrashBarrier {
   translation 5.84009 -0.227035 0.25
@@ -267,6 +292,11 @@ StraightRoadSegment {
   translation 13 -13 0.1
   rotation 0 0 1 -0.7854003061004253
   name "road(6)"
+  lines [
+    RoadLine {
+      type "continuous"
+    }
+  ]
   length 28
 }
 StraightRoadSegment {
@@ -293,6 +323,11 @@ StraightRoadSegment {
   translation -24 24 0.1
   rotation 0 0 1 2.3561996938995744
   name "road(8)"
+  lines [
+    RoadLine {
+      type "continuous"
+    }
+  ]
   length 31
 }
 StraightRoadSegment {
@@ -402,7 +437,7 @@ Floor {
   }
 }
 Warehouse {
-  translation -69.0735 -38.6461 1.13687e-13
+  translation -68.1195 -37.6921 1.13687e-13
   rotation 0 0 1 -0.785395307179586
 }
 Windmill {
@@ -425,18 +460,8 @@ ParkingLines {
   carParkWidth 7.6
 }
 TeslaModel3 {
-  hidden position_0_0 -9.567494586760197e-07
-  hidden position2_0_0 5.351338869020105e-05
-  hidden position_0_1 9.617431298919677e-07
-  hidden position2_0_1 5.3920380508118367e-05
-  hidden position_0_2 -0.0001754885303648978
-  hidden position_0_3 -0.00017542100477831
-  hidden rotation_1 0.9999999992838502 -2.627832834694473e-05 2.7235069217301242e-05 1.5707960007417485
-  hidden rotation_2 0.9999999992729165 2.6479327486503276e-05 -2.7441061962375928e-05 1.5707960007530108
-  hidden rotation_3 0.9999999923009414 8.774429340646593e-05 -8.774426473208333e-05 1.5707960076990586
-  hidden rotation_4 0.9999999923068652 -8.771053060265826e-05 8.771050193930914e-05 1.570796007693134
-  translation -64.5957 -11.2075 0.294119
-  rotation -0.003775343599518428 -0.009205835943083869 -0.9999504984574458 0.7783212894080183
+  translation -64.53606857968431 -11.146781738298982 0.27000915809769127
+  rotation -0.0036659821931429304 -0.008942300862351232 -0.99995329682433 0.778319448749636
   controller "carController"
   sensorsSlotFront [
     Camera {
